@@ -20,8 +20,11 @@ std::unique_ptr<RmRecord> RmFileHandle::get_record(const Rid& rid, Context* cont
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 初始化一个指向RmRecord的指针（赋值其内部的data和size）
-
-    return nullptr;
+    if(not this->is_record(rid)) return nullptr;
+    char* data = (this->fetch_page_handle(rid.page_no)).get_slot(rid.slot_no);
+    std::unique_ptr<RmRecord> p(new RmRecord(this->file_hdr_.record_size,data));
+    
+    return p;
 }
 
 /**
@@ -88,8 +91,18 @@ RmPageHandle RmFileHandle::fetch_page_handle(int page_no) const {
     // Todo:
     // 使用缓冲池获取指定页面，并生成page_handle返回给上层
     // if page_no is invalid, throw PageNotExistError exception
+    int n=this->fd_;
+    struct PageId pgid ={
+        n,
+        page_no
+    };
+    
+    Page *page = this->buffer_pool_manager_->fetch_page(pgid);
+    if(!page){
+        throw("PageNotExistError exception");
+    }
 
-    return RmPageHandle(&file_hdr_, nullptr);
+    return RmPageHandle(&file_hdr_, page);
 }
 
 /**
