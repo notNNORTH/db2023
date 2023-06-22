@@ -39,14 +39,14 @@ void DiskManager::write_page(int fd, page_id_t page_no, const char *offset, int 
     off_t result = lseek(fd, offset_in_file, SEEK_SET);
     if (result == -1) {
         // lseek() 失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::write_page Error");
+        throw InternalError("DiskManager::write_page Error 1");
     }
 
     // 调用 write() 函数写入数据
     ssize_t bytes_written = write(fd, offset, num_bytes);
     if (bytes_written == -1 || bytes_written != num_bytes) {
         // 写入失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::write_page Error");
+        throw InternalError("DiskManager::write_page Error 2");
     }
 }
 
