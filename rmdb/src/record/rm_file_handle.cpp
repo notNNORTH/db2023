@@ -20,8 +20,11 @@ std::unique_ptr<RmRecord> RmFileHandle::get_record(const Rid& rid, Context* cont
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 初始化一个指向RmRecord的指针（赋值其内部的data和size）
-
-    return nullptr;
+    if(not this->is_record(rid)) return nullptr;
+    char* data = (this->fetch_page_handle(rid.page_no)).get_slot(rid.slot_no);
+    std::unique_ptr<RmRecord> p(new RmRecord(this->file_hdr_.record_size,data));
+    
+    return p;
 }
 
 /**
@@ -37,8 +40,30 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     // 3. 将buf复制到空闲slot位置
     // 4. 更新page_handle.page_hdr中的数据结构
     // 注意考虑插入一条记录后页面已满的情况，需要更新file_hdr_.first_free_page_no
-
-    return Rid{-1, -1};
+    int bitmapsize=this->file_hdr_.bitmap_size;
+    int freepageno=this->file_hdr_.first_free_page_no;
+    RmPageHandle page_hdl = this->fetch_page_handle(freepageno);
+    Bitmap *bitmap=new Bitmap();
+    int recoredid=bitmap->next_bit(0,page_hdl.bitmap,bitmapsize,-1);
+    //assume the page will not be full
+    bitmap->set(page_hdl.bitmap,recoredid);
+    char* slot=page_hdl.get_slot(recoredid);
+    for(int i=0;i<bitmapsize;i++){
+        slot[i]=buf[i];
+    }
+    int nextfreepage=-1;
+    for(int i=freepageno;i<this->file_hdr_.num_pages;i++){
+        RmPageHandle page_hdl_temp = this->fetch_page_handle(i);
+        if(page_hdl_temp.page_hdr->num_records<this->file_hdr_.num_records_per_page){
+            nextfreepage=i;
+            break;
+        }
+    }
+    this->file_hdr_.first_free_page_no = nextfreepage;
+    page_hdl.page_hdr->num_records++;
+    page_hdl.page_hdr->next_free_page_no = nextfreepage;
+    //not do anything when the file is full and freepageno will be -1 willbe fault
+    return Rid{freepageno, recoredid};
 }
 
 /**
@@ -47,7 +72,16 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
  * @param {char*} buf 要插入记录的数据
  */
 void RmFileHandle::insert_record(const Rid& rid, char* buf) {
-    
+    int recordsize=this->file_hdr_.record_size;
+    //int slotsize=this->file_hdr_.
+    RmPageHandle page_hdl=this->fetch_page_handle(rid.page_no);
+    char* slot = page_hdl.get_slot(rid.slot_no);
+    for(int i=0;i<recordsize;i++){
+        slot[i]=buf[i];
+    }
+    Bitmap *bitmap=new Bitmap();
+    bitmap->set(page_hdl.bitmap,rid.slot_no);
+
 }
 
 /**
@@ -60,6 +94,26 @@ void RmFileHandle::delete_record(const Rid& rid, Context* context) {
     // 1. 获取指定记录所在的page handle
     // 2. 更新page_handle.page_hdr中的数据结构
     // 注意考虑删除一条记录后页面未满的情况，需要调用release_page_handle()
+
+    //todo is bitmap,slot,page_handle.page_hdr nextpage,num,file_hdr next
+    RmPageHandle page_hdl=this->fetch_page_handle(rid.page_no);
+    Bitmap *bitmap=new Bitmap();
+    int recordsize=this->file_hdr_.record_size;
+    char* slot = page_hdl.get_slot(rid.slot_no);
+    //can bot do
+    for(int i=0;i<recordsize;i++){
+        slot[i]=0;
+    }
+    bitmap->reset(page_hdl.bitmap,rid.slot_no);
+    page_hdl.page_hdr->num_records--;
+    //release_page_handle()
+    page_hdl.page_hdr->next_free_page_no=rid.page_no;
+    if(this->file_hdr_.first_free_page_no>rid.page_no){
+        this->file_hdr_.first_free_page_no=rid.page_no;
+    }
+    
+
+
 }
 
 
@@ -73,6 +127,13 @@ void RmFileHandle::update_record(const Rid& rid, char* buf, Context* context) {
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 更新记录
+    int recordsize=this->file_hdr_.record_size;
+    RmPageHandle page_hdl=this->fetch_page_handle(rid.page_no);
+    char* slot = page_hdl.get_slot(rid.slot_no);
+    for(int i=0;i<recordsize;i++){
+        slot[i]=buf[i];
+    }
+    //whatif the rid points is empty?
 
 }
 
@@ -88,8 +149,18 @@ RmPageHandle RmFileHandle::fetch_page_handle(int page_no) const {
     // Todo:
     // 使用缓冲池获取指定页面，并生成page_handle返回给上层
     // if page_no is invalid, throw PageNotExistError exception
+    int n=this->fd_;
+    struct PageId pgid ={
+        n,
+        page_no
+    };
+    
+    Page *page = this->buffer_pool_manager_->fetch_page(pgid);
+    if(!page){
+        throw("PageNotExistError exception");
+    }
 
-    return RmPageHandle(&file_hdr_, nullptr);
+    return RmPageHandle(&file_hdr_, page);
 }
 
 /**
