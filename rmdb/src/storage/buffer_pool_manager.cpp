@@ -35,16 +35,17 @@ void BufferPoolManager::update_page(Page *page, PageId new_page_id, frame_id_t n
     // Todo:
     // 1 如果是脏页，写回磁盘，并且把dirty置为false
     if (page->is_dirty()) {
-        bool write_successful = flush_page(page->get_page_id());
-        if (write_successful) {
-            page->is_dirty_ = false;
-        }
+        disk_manager_->write_page(page->get_page_id().fd, page->get_page_id().page_no, page->get_data(), PAGE_SIZE);
+        page->is_dirty_ = false;
+        
     }
 
     // 2 更新page table
     page_table_.erase(page->get_page_id());
-    page_table_[new_page_id] = new_frame_id;
-
+    if (new_frame_id != INVALID_PAGE_ID){
+        page_table_[new_page_id] = new_frame_id;
+    }
+    
     // 3 重置page的data，更新page id
     page->reset_memory();
     page->id_ = new_page_id;
@@ -64,16 +65,18 @@ Page* BufferPoolManager::fetch_page(PageId page_id) {
     if (it != page_table_.end()) {
     // 1.1    若目标页有被page_table_记录，则将其所在frame固定(pin)，并返回目标页。
         Page *page = &pages_[it->second];
-        replacer_->pin(it->second);
 
+        if (page->pin_count_ == 0){
+            replacer_->pin(it->second);
+        }
+        
         page->pin_count_++;
         return page;
     } else {
     // 1.2    否则，尝试调用find_victim_page获得一个可用的frame，若失败则返回nullptr
         frame_id_t frame_id;
-        bool res = find_victim_page(&frame_id);
-
-        if (!res) {
+    
+        if (!find_victim_page(&frame_id)) {
             return nullptr; // 找不到可用的牺牲页
         }
 
@@ -198,7 +201,7 @@ Page* BufferPoolManager::new_page(PageId* page_id) {
     // 4.   固定frame，更新pin_count_
     replacer_->pin(frame_id);
     page->pin_count_ = 1;
-
+    
     page_table_.erase(page->get_page_id());
     page_table_[*page_id] = frame_id;
 
