@@ -70,25 +70,25 @@ Page* BufferPoolManager::fetch_page(PageId page_id) {
         return page;
     } else {
     // 1.2    否则，尝试调用find_victim_page获得一个可用的frame，若失败则返回nullptr
-        frame_id_t* frame_id;
-        bool res = find_victim_page(frame_id);
+        frame_id_t frame_id;
+        bool res = find_victim_page(&frame_id);
 
         if (!res) {
             return nullptr; // 找不到可用的牺牲页
         }
 
     // 2.     若获得的可用frame存储的为dirty page，则须调用updata_page将page写回到磁盘
-        Page* victim_page = &pages_[*frame_id];
+        Page* victim_page = &pages_[frame_id];
 
         if (victim_page->is_dirty()) {
-            update_page(victim_page, page_id, *frame_id);
+            update_page(victim_page, page_id, frame_id);
         }
 
     // 3.     调用disk_manager_的read_page读取目标页到frame
         disk_manager_->read_page(page_id.fd, page_id.page_no, victim_page->get_data(), PAGE_SIZE);
 
     // 4.     固定目标页，更新pin_count_
-        replacer_->pin(*frame_id);
+        replacer_->pin(frame_id);
         victim_page->pin_count_ = 1;
 
     // 5.     返回目标页
