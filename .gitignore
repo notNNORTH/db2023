@@ -1,2 +1,11 @@
 /.vscode
 /rmdb/.vscode
+**/CMakeFiles
+**/Makefile
+**/*.cmake
+**/*.a
+**/*.so
+**/*.pc
+**/deps
+**/bin
+**/CMakeCache.txt
