@@ -184,13 +184,11 @@ Page* BufferPoolManager::new_page(PageId* page_id) {
     }
 
     // 2.   在fd对应的文件分配一个新的page_id
-    PageId* new_page_id;
-    (*new_page_id).fd = page_id->fd;
-    (*new_page_id).page_no = disk_manager_->allocate_page(page_id->fd);
+    *page_id = {page_id->fd, disk_manager_->allocate_page(page_id->fd)};
 
     // 3.   将frame的数据写回磁盘
     Page* page = &pages_[*frame_id];
-    update_page(page, *new_page_id, *frame_id);
+    disk_manager_->write_page(page->get_page_id().fd, page->get_page_id().page_no, page->get_data(), PAGE_SIZE);
 
     // 4.   固定frame，更新pin_count_
     replacer_->pin(*frame_id);
