@@ -20,11 +20,13 @@ std::unique_ptr<RmRecord> RmFileHandle::get_record(const Rid& rid, Context* cont
     // Todo:
     // 1. 获取指定记录所在的page handle
     // 2. 初始化一个指向RmRecord的指针（赋值其内部的data和size）
-    if(not this->is_record(rid)) return nullptr;
-    char* data = (this->fetch_page_handle(rid.page_no)).get_slot(rid.slot_no);
-    std::unique_ptr<RmRecord> p(new RmRecord(this->file_hdr_.record_size,data));
-    
-    return p;
+    RmPageHandle page_handle = fetch_page_handle(rid.page_no);
+    char* data = page_handle.get_slot(rid.slot_no);
+    int size = file_hdr_.record_size;
+    std::unique_ptr<RmRecord> record(new RmRecord());
+    record->data = data;
+    record->size = size;    
+    return record;
 }
 
 /**
@@ -42,8 +44,9 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     // 注意考虑插入一条记录后页面已满的情况，需要更新file_hdr_.first_free_page_no
     int bitmapsize=this->file_hdr_.bitmap_size;
     int freepageno=this->file_hdr_.first_free_page_no;
+    int recordsize=this->file_hdr_.record_size;
     if(freepageno==-1){
-        RmPageHandle newpage_hdl=this->create_page_handle();
+        RmPageHandle newpage_hdl=this->create_new_page_handle();
         freepageno=this->file_hdr_.num_pages-1;
     }
     RmPageHandle page_hdl = this->fetch_page_handle(freepageno);
@@ -52,7 +55,7 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     //assume the page will not be full
     bitmap->set(page_hdl.bitmap,recoredid);
     char* slot=page_hdl.get_slot(recoredid);
-    for(int i=0;i<bitmapsize;i++){
+    for(int i=0;i<recordsize;i++){
         slot[i]=buf[i];
     }
     int nextfreepage=-1;
