@@ -42,6 +42,10 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
     // 注意考虑插入一条记录后页面已满的情况，需要更新file_hdr_.first_free_page_no
     int bitmapsize=this->file_hdr_.bitmap_size;
     int freepageno=this->file_hdr_.first_free_page_no;
+    if(freepageno==-1){
+        RmPageHandle newpage_hdl=this->create_page_handle();
+        freepageno=this->file_hdr_.num_pages-1;
+    }
     RmPageHandle page_hdl = this->fetch_page_handle(freepageno);
     Bitmap *bitmap=new Bitmap();
     int recoredid=bitmap->next_bit(0,page_hdl.bitmap,bitmapsize,-1);
@@ -59,6 +63,8 @@ Rid RmFileHandle::insert_record(char* buf, Context* context) {
             break;
         }
     }
+    //if file is full nextfreepage=-1
+    
     this->file_hdr_.first_free_page_no = nextfreepage;
     page_hdl.page_hdr->num_records++;
     page_hdl.page_hdr->next_free_page_no = nextfreepage;
@@ -172,8 +178,9 @@ RmPageHandle RmFileHandle::create_new_page_handle() {
     // 1.使用缓冲池来创建一个新page
     // 2.更新page handle中的相关信息
     // 3.更新file_hdr_
-
-    return RmPageHandle(&file_hdr_, nullptr);
+    PageId pageid=PageId{this->fd_,this->file_hdr_.num_pages++};
+    Page *page=this->buffer_pool_manager_->new_page(&pageid);
+    return RmPageHandle(&file_hdr_, page);
 }
 
 /**
@@ -188,7 +195,7 @@ RmPageHandle RmFileHandle::create_page_handle() {
     //     1.1 没有空闲页：使用缓冲池来创建一个新page；可直接调用create_new_page_handle()
     //     1.2 有空闲页：直接获取第一个空闲页
     // 2. 生成page handle并返回给上层
-
+    
     return RmPageHandle(&file_hdr_, nullptr);
 }
 
