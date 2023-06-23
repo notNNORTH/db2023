@@ -9,3 +9,4 @@
 **/deps
 **/bin
 **/CMakeCache.txt
+**/unit_test.cpp

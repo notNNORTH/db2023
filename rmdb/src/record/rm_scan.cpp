@@ -30,29 +30,22 @@ void RmScan::next() {
     // 获取当前文件的第一个存放数据的页号
     int start_page = rid_.page_no;
     int start_slot = rid_.slot_no+1;
-    int max_records= file_handle_->file_hdr_.num_records_per_page;
-    Bitmap* bitmap=new Bitmap();
+    int max_records=file_handle_->file_hdr_.num_records_per_page;
+    
     // 遍历页面，找到下一个非空闲的位置
     for (int page_no = start_page; page_no < file_handle_->file_hdr_.num_pages; ++page_no) {
         RmPageHandle page_handle = file_handle_->fetch_page_handle(page_no);
         char* bitmap_temp=page_handle.bitmap;
-        int slot = bitmap->next_bit(1,bitmap_temp,max_records,-1);
-        if(slot==max_records) continue;
-        else{
-            rid_ = Rid{page_no, slot};
-            return;
-        }
-        // if (page_handle.page_hdr->next_free_page_no==-1) {
+        if (page_handle.page_hdr->next_free_page_no==-1) {
             // 遍历记录槽位，找到下一个非空闲槽位
-            // for (int slot = start_slot; slot < max_records; ++slot) {
-                
-            //     if (bitmap_temp[slot/8]&(1<<(slot%8))==1) {//用位图检查该slot是否不空闲
-            //         // 找到非空闲槽位，更新rid_并返回
-            //         rid_ = Rid{page_no, slot};
-            //         return;
-            //     }
-            // }
-        //}
+            for (int slot = start_slot; slot < max_records; ++slot) {
+                if (bitmap_temp[slot/8]&(1<<(slot%8))==1) {//用位图检查该slot是否不空闲
+                    // 找到非空闲槽位，更新rid_并返回
+                    rid_ = Rid{page_no, slot};
+                    return;
+                }
+            }
+        }
     }
     // 若没有找到非空闲位置，则将rid_置为无效
     rid_ = Rid{-1, -1};
@@ -69,7 +62,7 @@ bool RmScan::is_end() const {
     Rid last_record = Rid{file_handle_->file_hdr_.num_pages - 1, file_handle_->file_hdr_.num_records_per_page - 1};
 
     // 判断当前记录的位置是否在最后一个记录之后
-    return (rid_.page_no > last_record.page_no)||((rid_.page_no == last_record.page_no)&&rid_.slot_no>=last_record.slot_no);
+    return (rid_.page_no > last_record.page_no)||((rid_.page_no == last_record.page_no)&&rid_.slot_no>last_record.slot_no);
 }
 
 /**
