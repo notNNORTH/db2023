@@ -59,6 +59,7 @@ void BufferPoolManager::update_page(Page *page, PageId new_page_id, frame_id_t n
 Page* BufferPoolManager::fetch_page(PageId page_id) {
     //Todo:
     // 1.     从page_table_中搜寻目标页
+    std::scoped_lock lock{latch_};
     auto it = page_table_.find(page_id);
     if (it != page_table_.end()) {
     // 1.1    若目标页有被page_table_记录，则将其所在frame固定(pin)，并返回目标页。
@@ -173,6 +174,7 @@ bool BufferPoolManager::flush_page(PageId page_id) {
  * @param {PageId*} page_id 当成功创建一个新的page时存储其page_id
  */
 Page* BufferPoolManager::new_page(PageId* page_id) {
+    std::scoped_lock lock{latch_};
     /*该成员函数用于在缓冲池中申请创建一个新页面。如果创建新页面成功，则返回指向该页面的指针，同时通过参数page_id返回新建页面的编号。*/
     // 1.   获得一个可用的frame，若无法获得则返回nullptr
     frame_id_t frame_id;
@@ -203,6 +205,7 @@ Page* BufferPoolManager::new_page(PageId* page_id) {
  * @param {PageId} page_id 目标页
  */
 bool BufferPoolManager::delete_page(PageId page_id) {
+    std::scoped_lock lock{latch_};
     // 1.   在page_table_中查找目标页，若不存在返回true
     auto it = page_table_.find(page_id);
     if (it == page_table_.end()) {
@@ -232,6 +235,7 @@ bool BufferPoolManager::delete_page(PageId page_id) {
  * @param {int} fd 文件句柄
  */
 void BufferPoolManager::flush_all_pages(int fd) {
+    std::scoped_lock lock{latch_};
     for(int i = 0; i < pool_size_; i++){
         Page* page = &pages_[i];
         if (page->get_page_id().fd == fd && page->get_page_id().page_no != INVALID_PAGE_ID){
