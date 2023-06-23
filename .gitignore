@@ -5,8 +5,7 @@
 **/*.cmake
 **/*.a
 **/*.so
-**/*.pc
-**/deps
+/rmdb/deps
 **/bin
 **/CMakeCache.txt
-**/unit_test.cpp
+/rmdb/src/unit_test.cpp
