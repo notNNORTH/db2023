@@ -137,7 +137,7 @@ void DiskManager::create_file(const std::string &path) {
     int fd = open(path.c_str(), O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1) {
         // 文件创建失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::create_file Error");
+        throw FileExistsError("DiskManager::create_file Error");
     }
 
     // 关闭文件
@@ -156,14 +156,14 @@ void DiskManager::destroy_file(const std::string &path) {
     // 检查文件是否已经打开
     if (path2fd_.count(path) > 0) {//count behaves not so well ,can be updated
         // 文件未关闭，抛出异常或进行错误处理
-        throw InternalError("DiskManager::destroy_file Error");
+        throw FileNotFoundError("DiskManager::destroy_file Error");
     }
 
     // 调用 unlink() 函数删除文件
     int result = unlink(path.c_str());
     if (result == -1) {
         // 删除文件失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::destroy_file Error");
+        throw FileNotFoundError("DiskManager::destroy_file Error");
     }
     
 }
@@ -182,7 +182,7 @@ int DiskManager::open_file(const std::string &path) {
     int fd = open(path.c_str(), O_RDWR);
     if (fd == -1) {
         // 文件打开失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::open_file Error");
+        throw FileNotFoundError("DiskManager::open_file Error");
     }
 
     // 更新文件打开列表
