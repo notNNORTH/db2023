@@ -1,11 +1,4 @@
-/.vscode
-/rmdb/.vscode
-**/CMakeFiles
-**/Makefile
-**/*.cmake
-**/*.a
-**/*.so
-/rmdb/deps
-**/bin
-**/CMakeCache.txt
-/rmdb/src/unit_test.cpp
+.vscode
+.DS_Store
+build
+rmdb_client/build
