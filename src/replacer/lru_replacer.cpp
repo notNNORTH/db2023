@@ -55,7 +55,7 @@ void LRUReplacer::pin(frame_id_t frame_id) {
     auto it = LRUhash_.find(frame_id);
     if (it != LRUhash_.end()) {     // find it
 
-        LRUlist_.remove(frame_id);  // frame_id is unique
+        LRUlist_.erase(LRUhash_[frame_id]);  // frame_id is unique
 
         LRUhash_.erase(it);
     }
@@ -69,7 +69,7 @@ void LRUReplacer::unpin(frame_id_t frame_id) {
     // Todo:
     //  支持并发锁(not done yet!!!!)
     //  选择一个frame取消固定
-    std::lock_guard<std::mutex> lock{latch_};
+    std::scoped_lock lock{latch_};
 
     auto it = LRUhash_.find(frame_id);
     // can't find it

@@ -60,11 +60,12 @@ Page* BufferPoolManager::fetch_page(PageId page_id) {
     //Todo:
     // 1.     从page_table_中搜寻目标页
     std::scoped_lock lock{latch_};
+
     auto it = page_table_.find(page_id);
     if (it != page_table_.end()) {
     // 1.1    若目标页有被page_table_记录，则将其所在frame固定(pin)，并返回目标页。
-        Page* page = &pages_[it->second];
-        replacer_->pin(it->second);
+        Page* page = &pages_[page_table_[page_id]];
+        replacer_->pin(page_table_[page_id]);
 
         page->pin_count_++;
         return page;
@@ -78,10 +79,8 @@ Page* BufferPoolManager::fetch_page(PageId page_id) {
 
     // 2.     若获得的可用frame存储的为dirty page，则须调用updata_page将page写回到磁盘
         Page* victim_page = &pages_[frame_id];
-
-        if (victim_page->is_dirty()) {
-            update_page(victim_page, page_id, frame_id);
-        }
+        update_page(victim_page, page_id, frame_id);
+        
 
     // 3.     调用disk_manager_的read_page读取目标页到frame
         disk_manager_->read_page(page_id.fd, page_id.page_no, victim_page->get_data(), PAGE_SIZE);
@@ -115,7 +114,7 @@ bool BufferPoolManager::unpin_page(PageId page_id, bool is_dirty) {
     }
 
     // 1.2 P在页表中存在，获取其pin_count_
-    Page* page = &pages_[it->second];
+    Page* page = &pages_[page_table_[page_id]];
     
     // 2.1 若pin_count_已经等于0，则返回false
     if (page->pin_count_ <= 0) {
@@ -127,12 +126,14 @@ bool BufferPoolManager::unpin_page(PageId page_id, bool is_dirty) {
 
     // 2.2.1 若自减后等于0，则调用replacer_的Unpin
     if (page->pin_count_ == 0) {
-        replacer_->unpin(it->second);
+        replacer_->unpin(page_table_[page_id]);
     }
 
     // 3 根据参数is_dirty，更改P的is_dirty_
-    page->is_dirty_ = is_dirty;
-
+    if (is_dirty){
+        page->is_dirty_ = is_dirty;
+    }
+    
     return true;
 }
 
