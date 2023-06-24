@@ -85,6 +85,52 @@ void SmManager::drop_db(const std::string& db_name) {
  * @param {string&} db_name 数据库名称，与文件夹同名
  */
 void SmManager::open_db(const std::string& db_name) {
+    // 若数据库不存在报错
+    if (!is_dir(db_name)) {
+        throw DatabaseNotFoundError(db_name);
+    }
+
+    // 切换到数据库目录
+    if (chdir(db_name.c_str()) < 0) {
+        throw UnixError();
+    }
+
+    // 打开数据库元数据文件
+    std::ifstream ifs(DB_META_NAME);
+
+    // 读取数据库元数据
+    ifs >> db_ ;  // 注意：此处重载了操作符>>
+
+    // 关闭数据库元数据文件
+    ifs.close();
+
+    // 进行其他打开数据库的操作，例如加载表信息、初始化缓存等
+    // 创建fhs,ihs
+    // 遍历tabs
+     for (auto it = db_.tabs_.begin(); it != db_.tabs_.end(); ++it) {
+    // 使用 it->first 访问键，it->second 访问值
+    // 在此处处理键值对的逻辑
+    // 表名=文件名 用name代指
+        std::string name = it -> first;
+    // 用表名获取指针,用打开文件返回Filedl指针,再关闭文件
+        int fd = disk_manager_ -> open_file( name );
+        std::unique_ptr<RmFileHandle> FileHdl = std::make_unique<RmFileHandle> ( disk_manager_, buffer_pool_manager_, fd);
+        disk_manager_->close_file(fd);
+    // 用fd创建索引   
+        std::unique_ptr<IxIndexHandle> IdxHdl = std::make_unique<IxIndexHandle>( disk_manager_, buffer_pool_manager_ , fd);
+        
+    // 插入map
+        fhs_.emplace( name , std::move(FileHdl) );
+        ihs_.emplace( name , std::move(IdxHdl) );
+        
+
+    }   
+    
+
+    // 切换回根目录
+    if (chdir("..") < 0) {
+        throw UnixError();
+    }
     
 }
 
@@ -101,7 +147,12 @@ void SmManager::flush_meta() {
  * @description: 关闭数据库并把数据落盘
  */
 void SmManager::close_db() {
-    
+    flush_meta();
+    delete disk_manager_;
+    delete buffer_pool_manager_;
+    delete rm_manager_;
+    delete ix_manager_;
+
 }
 
 /**
@@ -188,7 +239,23 @@ void SmManager::create_table(const std::string& tab_name, const std::vector<ColD
  * @param {Context*} context
  */
 void SmManager::drop_table(const std::string& tab_name, Context* context) {
-    
+    //如果没有该表名报错
+    if (db_.is_table(tab_name)) {
+        throw TableExistsError(tab_name);
+    }
+    //获取表的handle
+    TabMeta TableD = db_.get_table(tab_name);
+    //删除文件
+    rm_manager_->destroy_file(tab_name);
+    //在fhs中找到表的filehdl并删除记录
+    fhs_.erase(tab_name);
+    //在db tab_表中删除
+    db_.tabs_.erase(tab_name);
+    //删除当前table,table中为vector型变量会自动回收
+    delete &TableD;
+    //将数据刷盘
+    flush_meta();
+
 }
 
 /**
