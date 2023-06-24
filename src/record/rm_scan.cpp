@@ -24,9 +24,11 @@ RmScan::RmScan(const RmFileHandle *file_handle) : file_handle_(file_handle) {
     int start_slot=rid_.slot_no;
     for(int i = start_page; i < file_handle_->file_hdr_.num_pages; i++){
         auto page_handle = file_handle_->fetch_page_handle(i);
-        rid_ = {i, Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, -1)};
-		file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
-		return;
+		if (page_handle.page_hdr->num_records != 0) {
+			rid_ = {i, Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, -1)};
+			file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
+			return;
+		}
     }
     rid_ = {file_handle_->file_hdr_.num_pages, -1};
     return;
@@ -49,18 +51,20 @@ void RmScan::next() {
 	//for循环扫描
 	for (int i = rid_.page_no; i < max_pages_num; i++) {
 		RmPageHandle page_handle = file_handle_->fetch_page_handle(i);
-		int slot_no = Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, flag ? -1 : rid_.slot_no);
-		int page_end=page_handle.file_hdr->num_records_per_page;
-		//next_bit扫描到了页面末尾仍未找到1位,进入下一次for循环扫描下一页
-		if (slot_no == page_end) {
-			rid_.slot_no = -1;
-			continue;
-		}
-		//nextbit找到了1位
-		else{
-			rid_ = {i, slot_no};
-			file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
-			return;
+		if (page_handle.page_hdr->num_records != 0) {
+			int slot_no = Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, flag ? -1 : rid_.slot_no);
+			int page_end=page_handle.file_hdr->num_records_per_page;
+			//next_bit扫描到了页面末尾仍未找到1位,进入下一次for循环扫描下一页
+			if (slot_no == page_end) {
+				rid_.slot_no = -1;
+				continue;
+			}
+			//nextbit找到了1位
+			else{
+				rid_ = {i, slot_no};
+				file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
+				return;
+			}
 		}
 		//unpin
 		file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
@@ -85,3 +89,4 @@ bool RmScan::is_end() const {
 Rid RmScan::rid() const {
 	return rid_;
 }
+
