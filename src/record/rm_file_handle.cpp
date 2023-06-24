@@ -26,6 +26,7 @@ std::unique_ptr<RmRecord> RmFileHandle::get_record(const Rid& rid, Context* cont
     std::unique_ptr<RmRecord> record(new RmRecord());
     record->data = data;
     record->size = size;    
+    buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), true);
     return record;
 }
 

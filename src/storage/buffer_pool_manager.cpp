@@ -37,7 +37,6 @@ void BufferPoolManager::update_page(Page *page, PageId new_page_id, frame_id_t n
     if (page->is_dirty()) {
         disk_manager_->write_page(page->get_page_id().fd, page->get_page_id().page_no, page->get_data(), PAGE_SIZE);
         page->is_dirty_ = false;
-        
     }
 
     // 2 更新page table
@@ -47,6 +46,7 @@ void BufferPoolManager::update_page(Page *page, PageId new_page_id, frame_id_t n
     // 3 重置page的data，更新page id
     page->reset_memory();
     page->id_ = new_page_id;
+    page->pin_count_ = 0;
 }
 
 /**
@@ -116,10 +116,9 @@ bool BufferPoolManager::unpin_page(PageId page_id, bool is_dirty) {
 
     // 1.2 P在页表中存在，获取其pin_count_
     Page* page = &pages_[it->second];
-    int pin_count = page->pin_count_;
-
+    
     // 2.1 若pin_count_已经等于0，则返回false
-    if (pin_count <= 0) {
+    if (page->pin_count_ <= 0) {
         return false;
     }
 
@@ -189,7 +188,7 @@ Page* BufferPoolManager::new_page(PageId* page_id) {
 
     // 3.   将frame的数据写回磁盘
     Page* page = &pages_[frame_id];
-    update_page(page,*page_id,frame_id);
+    update_page(page, *page_id, frame_id);
     // 4.   固定frame，更新pin_count_
     replacer_->pin(frame_id);
 
@@ -221,12 +220,14 @@ bool BufferPoolManager::delete_page(PageId page_id) {
     // 3.   将目标页数据写回磁盘，从页表中删除目标页，重置其元数据，将其加入free_list_，返回true
     if (page->is_dirty()) {
         disk_manager_->write_page(page_id.fd, page_id.page_no, page->get_data(), PAGE_SIZE);
+        page->is_dirty_ = false;
     }
 
-    page_table_.erase(it);
+    page_table_.erase(page_id);
     page->reset_memory();
     free_list_.push_back(it->second);
-    
+    page->pin_count_ = 0;
+        
     return true;
 }
 
