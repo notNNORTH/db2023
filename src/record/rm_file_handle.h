@@ -42,7 +42,8 @@ struct RmPageHandle {
 
 /* 每个RmFileHandle对应一个表的数据文件，里面有多个page，每个page的数据封装在RmPageHandle中 */
 class RmFileHandle {      
-    friend class RmScan;    
+    friend class RmScan; 
+    friend class SeqRecScan;   
     friend class RmManager;
 
    private:
