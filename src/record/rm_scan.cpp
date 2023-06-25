@@ -22,6 +22,7 @@ RmScan::RmScan(const RmFileHandle *file_handle) : file_handle_(file_handle) {
     rid_={1,-1};
     int start_page=rid_.page_no;
     int start_slot=rid_.slot_no;
+	//从第一页的-1号位开始遍历
     for(int i = start_page; i < file_handle_->file_hdr_.num_pages; i++){
         auto page_handle = file_handle_->fetch_page_handle(i);
 		if (page_handle.page_hdr->num_records != 0) {
