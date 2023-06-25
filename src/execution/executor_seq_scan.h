@@ -108,6 +108,7 @@ class SeqScanExecutor : public AbstractExecutor {
 
     SmManager *sm_manager_;
     std::vector<ColMeta> cols_check_;         // 条件语句中所有用到列的列的元数据信息
+    std::unordered_map<std::string, ColMeta> ColName_to_ColMeta_;
 
    public:
     SeqScanExecutor(SmManager *sm_manager, std::string tab_name, std::vector<Condition> conds, Context *context) {
@@ -119,27 +120,26 @@ class SeqScanExecutor : public AbstractExecutor {
         cols_ = tab.cols;
         len_ = cols_.back().offset + cols_.back().len;
         //hashmap
-        std::unordered_map<std::string, ColMeta> ColName_to_ColMeta_=tab.ColName_to_ColMeta;
+        ColName_to_ColMeta_=tab.ColName_to_ColMeta;
         context_ = context;
 
         fed_conds_ = conds_;//后续查询优化可以从fedcond入手!!!!!!!!!!!!!!!!!!!
-
         //初始化条件语句中所有用到列的列的元数据信息
-        int i=0;
-        for (const auto& condition : fed_conds_) {
+        int con_size=fed_conds_.size();
+        for (int loop=0;loop<con_size;loop++) {
+            auto temp_con=fed_conds_[loop];
 
             // 检查左操作数是否为列操作数
-            if (!condition.lhs_col.tab_name.empty() && !condition.lhs_col.col_name.empty()) {
+            if (!temp_con.lhs_col.tab_name.empty() && !temp_con.lhs_col.col_name.empty()) {
                 // 查找colmeta
-                ColMeta temp=ColName_to_ColMeta_[condition.lhs_col.col_name];
+                ColMeta temp=ColName_to_ColMeta_[temp_con.lhs_col.col_name];
                 // 将元数据对象添加到列的元数据向量中
                 cols_check_.push_back(temp);
-        }
-
+            }
             // 检查右操作数是否为列操作数
-            if (!condition.is_rhs_val && !condition.rhs_col.tab_name.empty() && !condition.rhs_col.col_name.empty()) {
+            if (!temp_con.is_rhs_val && !temp_con.rhs_col.tab_name.empty() && !temp_con.rhs_col.col_name.empty()) {
                 // 查找colmeta
-                ColMeta temp=ColName_to_ColMeta_[condition.rhs_col.col_name];
+                ColMeta temp=ColName_to_ColMeta_[temp_con.rhs_col.col_name];
                 // 将元数据对象添加到列的元数据向量中
                 cols_check_.push_back(temp);
             }
