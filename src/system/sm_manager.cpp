@@ -34,6 +34,8 @@ bool SmManager::is_dir(const std::string& db_name) {
  * @param {string&} db_name 数据库名称
  */
 void SmManager::create_db(const std::string& db_name) {
+    
+
     if (is_dir(db_name)) {
         throw DatabaseExistsError(db_name);
     }
@@ -111,27 +113,28 @@ void SmManager::open_db(const std::string& db_name) {
     // 使用 it->first 访问键，it->second 访问值
     // 在此处处理键值对的逻辑
     // 表名=文件名 用name代指
+        
         std::string name = it -> first;
-    // 用表名获取指针,用打开文件返回Filedl指针,再关闭文件
+        
+    // 用表名获取指针,用打开文件返回Filedl指针,再关闭文件-----------可简化直接将disk_manager createfile函数拿出来省一个步骤
         int fd = disk_manager_ -> open_file( name );
+        
         std::unique_ptr<RmFileHandle> FileHdl = std::make_unique<RmFileHandle> ( disk_manager_, buffer_pool_manager_, fd);
+        
         disk_manager_->close_file(fd);
-    // 用fd创建索引   
-        std::unique_ptr<IxIndexHandle> IdxHdl = std::make_unique<IxIndexHandle>( disk_manager_, buffer_pool_manager_ , fd);
+        
+    // 用fd创建索引  TODO--------------------------------------------------------------将来索引要进行修改 
+        //std::unique_ptr<IxIndexHandle> IdxHdl = std::make_unique<IxIndexHandle>( disk_manager_, buffer_pool_manager_ , fd);
         
     // 插入map
         fhs_.emplace( name , std::move(FileHdl) );
-        ihs_.emplace( name , std::move(IdxHdl) );
+        //ihs_.emplace( name , std::move(IdxHdl) );
         
 
     }   
     
 
-    // 切换回根目录
-    if (chdir("..") < 0) {
-        throw UnixError();
-    }
-    
+
 }
 
 /**
@@ -147,11 +150,19 @@ void SmManager::flush_meta() {
  * @description: 关闭数据库并把数据落盘
  */
 void SmManager::close_db() {
+    //关闭数据库，删除信息释放空间
     flush_meta();
     delete disk_manager_;
     delete buffer_pool_manager_;
     delete rm_manager_;
     delete ix_manager_;
+    delete &db_;
+    
+    // 切换回根目录
+    if (chdir("..") < 0) {
+        throw UnixError();
+    }
+
 
 }
 
@@ -160,6 +171,7 @@ void SmManager::close_db() {
  * @param {Context*} context 
  */
 void SmManager::show_tables(Context* context) {
+
     std::fstream outfile;
     outfile.open("output.txt", std::ios::out | std::ios::app);
     outfile << "| Tables |\n";
@@ -174,6 +186,7 @@ void SmManager::show_tables(Context* context) {
     }
     printer.print_separator(context);
     outfile.close();
+
 }
 
 /**
@@ -182,6 +195,7 @@ void SmManager::show_tables(Context* context) {
  * @param {Context*} context 
  */
 void SmManager::desc_table(const std::string& tab_name, Context* context) {
+
     TabMeta &tab = db_.get_table(tab_name);
 
     std::vector<std::string> captions = {"Field", "Type", "Index"};
@@ -206,6 +220,7 @@ void SmManager::desc_table(const std::string& tab_name, Context* context) {
  * @param {Context*} context 
  */
 void SmManager::create_table(const std::string& tab_name, const std::vector<ColDef>& col_defs, Context* context) {
+
     if (db_.is_table(tab_name)) {
         throw TableExistsError(tab_name);
     }
@@ -231,6 +246,8 @@ void SmManager::create_table(const std::string& tab_name, const std::vector<ColD
     fhs_.emplace(tab_name, rm_manager_->open_file(tab_name));
 
     flush_meta();
+
+
 }
 
 /**
@@ -240,21 +257,28 @@ void SmManager::create_table(const std::string& tab_name, const std::vector<ColD
  */
 void SmManager::drop_table(const std::string& tab_name, Context* context) {
     //如果没有该表名报错
-    if (db_.is_table(tab_name)) {
-        throw TableExistsError(tab_name);
+
+
+    if (!db_.is_table(tab_name)) {
+        throw TableNotFoundError(tab_name);
     }
     //获取表的handle
     TabMeta TableD = db_.get_table(tab_name);
     //删除文件
+    int fd = disk_manager_->get_file_fd(tab_name);
+    disk_manager_-> close_file(fd);
     rm_manager_->destroy_file(tab_name);
+
     //在fhs中找到表的filehdl并删除记录
     fhs_.erase(tab_name);
+
     //在db tab_表中删除
     db_.tabs_.erase(tab_name);
-    //删除当前table,table中为vector型变量会自动回收
-    delete &TableD;
+
+    //删除当前table,table中为vector型变量会自动回收，map中table也会自动回收，所以不用调用delete
     //将数据刷盘
     flush_meta();
+
 
 }
 
