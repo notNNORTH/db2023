@@ -86,3 +86,101 @@ struct SetClause {
     TabCol lhs;
     Value rhs;
 };
+
+class ConditionEvaluator {
+public:
+    static bool evaluate(const Condition& condition, const std::vector<ColMeta>& cols, const RmRecord& record) {
+        const Value& lhsValue = getOperandValue(condition.lhs_col, cols, record);
+        const Value& rhsValue = getOperandValue(condition.rhs_col, cols, record, condition.rhs_val);
+
+        switch (condition.op) {
+            case OP_EQ:
+                return isEqual(lhsValue, rhsValue);
+            case OP_NE:
+                return !isEqual(lhsValue, rhsValue);
+            case OP_LT:
+                return isLessThan(lhsValue, rhsValue);
+            case OP_GT:
+                return isGreaterThan(lhsValue, rhsValue);
+            case OP_LE:
+                return isLessThanOrEqual(lhsValue, rhsValue);
+            case OP_GE:
+                return isGreaterThanOrEqual(lhsValue, rhsValue);
+            default:
+                throw std::string("Invalid comparison operator");
+        }
+    }
+
+private:
+    static const Value& getOperandValue(const TabCol& col, const std::vector<ColMeta>& cols, const RmRecord& record, const Value& value = {}) {
+        if (col.tab_name.empty() && col.col_name.empty()) {
+            // 使用常量值
+            return value;
+        } else {
+            // 使用列值
+            for (const auto& meta : cols) {
+                if (meta.tab_name == col.tab_name && meta.name == col.col_name) {
+                    char* dataPtr = record.data + meta.offset;
+                    return *reinterpret_cast<Value*>(dataPtr);
+                }
+            }
+            throw std::string("Invalid column reference");
+        }
+    }
+
+    static bool isEqual(const Value& lhs, const Value& rhs) {
+        if (lhs.type != rhs.type) {
+            throw std::string("Type mismatch in comparison");
+        }
+        switch (lhs.type) {
+            case TYPE_INT:
+                return lhs.int_val == rhs.int_val;
+            case TYPE_FLOAT:
+                return lhs.float_val == rhs.float_val;
+            case TYPE_STRING:
+                return lhs.str_val == rhs.str_val;
+            default:
+                throw std::string("Invalid value type");
+        }
+    }
+
+    static bool isLessThan(const Value& lhs, const Value& rhs) {
+        if (lhs.type != rhs.type) {
+            throw std::string("Type mismatch in comparison");
+        }
+        switch (lhs.type) {
+            case TYPE_INT:
+                return lhs.int_val < rhs.int_val;
+            case TYPE_FLOAT:
+                return lhs.float_val < rhs.float_val;
+            case TYPE_STRING:
+                return lhs.str_val < rhs.str_val;
+            default:
+                throw std::string("Invalid value type");
+        }
+    }
+
+    static bool isGreaterThan(const Value& lhs, const Value& rhs) {
+        if (lhs.type != rhs.type) {
+            throw std::string("Type mismatch in comparison");
+        }
+        switch (lhs.type) {
+            case TYPE_INT:
+                return lhs.int_val > rhs.int_val;
+            case TYPE_FLOAT:
+                return lhs.float_val > rhs.float_val;
+            case TYPE_STRING:
+                return lhs.str_val > rhs.str_val;
+            default:
+                throw std::string("Invalid value type");
+        }
+    }
+
+    static bool isLessThanOrEqual(const Value& lhs, const Value& rhs) {
+        return isEqual(lhs, rhs) || isLessThan(lhs, rhs);
+    }
+
+    static bool isGreaterThanOrEqual(const Value& lhs, const Value& rhs) {
+        return isEqual(lhs, rhs) || isGreaterThan(lhs, rhs);
+    }
+};
