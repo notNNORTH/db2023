@@ -23,25 +23,19 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         // 处理表名
         query->tables = std::move(x->tabs);
         /** TODO: 检查表是否存在 */
-        if (query->tables.size() == 0){
-            throw TableNotFoundError("SelectError: table not found!");
+        int table_size = query->tables.size();
+        for (int i = 0; i < table_size; i++){
+            auto tab = query->tables[i];
+            if (!sm_manager_->db_.is_table(tab)){
+                throw TableNotFoundError(tab);
+            }
         }
-
-        /*
-        struct SelectStmt : public TreeNode {
-            std::vector<std::shared_ptr<Col>> cols;
-            std::vector<std::string> tabs;
-            std::vector<std::shared_ptr<BinaryExpr>> conds;
-
-        class Query{
-            std::vector<Condition> conds;
-            std::vector<TabCol> cols;
-            std::vector<std::string> tables;
-        */
 
         // 插入属性
         // 处理target list，再target list中添加上表名，例如 a.id
-        for (auto &sv_sel_col : x->cols) {
+        int col_size = x->cols.size();
+        for (int i = 0; i < col_size; i++){
+            auto sv_sel_col = x->cols[i];
             TabCol sel_col = {.tab_name = sv_sel_col->tab_name, .col_name = sv_sel_col->col_name};
             query->cols.push_back(sel_col);
         }
@@ -63,36 +57,20 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         //处理where条件
         get_clause(x->conds, query->conds);
         check_clause(query->tables, query->conds);
+
     } else if (auto x = std::dynamic_pointer_cast<ast::UpdateStmt>(parse)) {
         /** TODO: */
-
         // 处理表名
         query->tables.push_back(x->tab_name);
-        /** 检查表是否存在 */
-        if (query->tables.size() == 0){
-            throw TableNotFoundError("UpdateError: table not found!");
+        auto tab = query->tables.back();
+        if (!sm_manager_->db_.is_table(tab)){
+            throw TableNotFoundError(tab);
         }
-        /*
-        class Query{
-            std::vector<Condition> conds;
-            std::vector<std::string> tables;
-            std::vector<SetClause> set_clauses;
 
-        struct UpdateStmt : public TreeNode {
-            std::string tab_name;
-            std::vector<std::shared_ptr<SetClause>> set_clauses;
-            std::vector<std::shared_ptr<BinaryExpr>> conds;
-
-        struct SetClause {
-            TabCol lhs;
-            Value rhs;
-        
-        ast::SetClause : public TreeNode {
-            std::string col_name;
-            std::shared_ptr<Value> val;
-        */
         // 处理要更新的列及对应的值
-        for (auto& sv_set_clause : x->set_clauses) {
+        int set_clauses_size = x->set_clauses.size();
+        for (int i = 0; i < set_clauses_size; i++){
+            auto sv_set_clause = x->set_clauses[i];
             SetClause set_clause;
             set_clause.lhs.tab_name = x->tab_name;
             set_clause.lhs.col_name = sv_set_clause->col_name;
@@ -105,43 +83,22 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         check_clause(query->tables, query->conds);
 
     } else if (auto x = std::dynamic_pointer_cast<ast::DeleteStmt>(parse)) {
-
-        /*
-        struct DeleteStmt : public TreeNode {
-            std::string tab_name;
-            std::vector<std::shared_ptr<BinaryExpr>> conds;
-
-        class Query{
-            std::vector<Condition> conds;
-            std::vector<std::string> tables;
-        */
-
         // 处理表名
         query->tables.push_back(x->tab_name);
-        /** 检查表是否存在 */
-        if (query->tables.size() == 0){
-            throw TableNotFoundError("DeleteError: table not found!");
+        auto tab = query->tables.back();
+        if (!sm_manager_->db_.is_table(tab)){
+            throw TableNotFoundError(tab);
         }
 
         //处理where条件
         get_clause(x->conds, query->conds);
         check_clause({x->tab_name}, query->conds);        
     } else if (auto x = std::dynamic_pointer_cast<ast::InsertStmt>(parse)) {
-        /*
-        struct InsertStmt : public TreeNode {
-            std::string tab_name;
-            std::vector<std::shared_ptr<Value>> vals;
-
-        class Query{
-            std::vector<std::string> tables;
-            std::vector<Value> values;
-        */
-
         // 处理表名
         query->tables.push_back(x->tab_name);
-        /** 检查表是否存在 */
-        if (query->tables.size() == 0){
-            throw TableNotFoundError("InsertError: table not found!");
+        auto tab = query->tables.back();
+        if (!sm_manager_->db_.is_table(tab)){
+            throw TableNotFoundError(tab);
         }
 
         // 处理insert 的values值
@@ -175,7 +132,16 @@ TabCol Analyze::check_column(const std::vector<ColMeta> &all_cols, TabCol target
         target.tab_name = tab_name;
     } else {
         /** TODO: Make sure target column exists */
-        
+        bool columnExists = false;
+        for (const auto &col : all_cols) {
+            if (col.tab_name == target.tab_name && col.name == target.col_name) {
+                columnExists = true;
+                break;
+            }
+        }
+        if (!columnExists) {
+            throw ColumnNotFoundError(target.col_name);
+        }
     }
     return target;
 }
@@ -230,6 +196,9 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
             TabMeta &rhs_tab = sm_manager_->db_.get_table(cond.rhs_col.tab_name);
             auto rhs_col = rhs_tab.get_col(cond.rhs_col.col_name);
             rhs_type = rhs_col->type;
+        }
+        if ((lhs_type == TYPE_INT && rhs_type == TYPE_FLOAT) ||(lhs_type == TYPE_FLOAT && rhs_type == TYPE_INT)){
+            return;
         }
         if (lhs_type != rhs_type) {
             throw IncompatibleTypeError(coltype2str(lhs_type), coltype2str(rhs_type));
