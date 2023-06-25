@@ -71,11 +71,19 @@ struct TabMeta {
     std::vector<ColMeta> cols;          // 表包含的字段
     std::vector<IndexMeta> indexes;     // 表上建立的索引
 
+    // 建立属性名称到属性类型的映射关系
+    std::unordered_map<std::string, ColMeta> ColName_to_ColMeta;
+    
+    // 构造函数中初始化映射关系
+
     TabMeta(){}
 
     TabMeta(const TabMeta &other) {
         name = other.name;
-        for(auto col : other.cols) cols.push_back(col);
+        for(auto col : other.cols){
+            cols.push_back(col);
+            ColName_to_ColMeta[col.name] = col;
+        }
     }
 
     /* 判断当前表中是否存在名为col_name的字段 */

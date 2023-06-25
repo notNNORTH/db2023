@@ -37,6 +37,21 @@ class DeleteExecutor : public AbstractExecutor {
     }
 
     std::unique_ptr<RmRecord> Next() override {
+        // 1.检查是否还有待删除的记录
+        if (rids_.empty()) {
+            return nullptr;  // 所有记录已删除，返回 nullptr 表示完成删除操作
+        }
+        
+        // 2.获取最后一个待删除记录的位置
+        Rid rid = rids_.back();
+        rids_.pop_back();
+        
+        // 3.删除记录
+        fh_->delete_record(rid, context_);
+
+        // TODO(by lzp)
+        // 4.删除索引
+        
         return nullptr;
     }
 
