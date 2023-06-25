@@ -26,9 +26,9 @@ class Query{
     // TODO jointree
     // where条件
     std::vector<Condition> conds;
-    // 投影列
+    // 投影列(查找对象的属性, SELECT col1, col2...)
     std::vector<TabCol> cols;
-    // 表名
+    // 表名(FROM)
     std::vector<std::string> tables;
     // update 的set 值
     std::vector<SetClause> set_clauses;

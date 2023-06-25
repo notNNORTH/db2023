@@ -15,7 +15,7 @@ See the Mulan PSL v2 for more details. */
  * @param {shared_ptr<ast::TreeNode>} parse parser生成的结果集
  * @return {shared_ptr<Query>} Query 
  */
-std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
+std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)    // parse:语法树
 {
     std::shared_ptr<Query> query = std::make_shared<Query>();
     if (auto x = std::dynamic_pointer_cast<ast::SelectStmt>(parse))
@@ -23,7 +23,23 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         // 处理表名
         query->tables = std::move(x->tabs);
         /** TODO: 检查表是否存在 */
+        if (query->tables.size() == 0){
+            throw TableNotFoundError("SelectError: table not found!");
+        }
 
+        /*
+        struct SelectStmt : public TreeNode {
+            std::vector<std::shared_ptr<Col>> cols;
+            std::vector<std::string> tabs;
+            std::vector<std::shared_ptr<BinaryExpr>> conds;
+
+        class Query{
+            std::vector<Condition> conds;
+            std::vector<TabCol> cols;
+            std::vector<std::string> tables;
+        */
+
+        // 插入属性
         // 处理target list，再target list中添加上表名，例如 a.id
         for (auto &sv_sel_col : x->cols) {
             TabCol sel_col = {.tab_name = sv_sel_col->tab_name, .col_name = sv_sel_col->col_name};
@@ -31,8 +47,8 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         }
         
         std::vector<ColMeta> all_cols;
-        get_all_cols(query->tables, all_cols);
-        if (query->cols.empty()) {
+        get_all_cols(query->tables, all_cols);      // 获取（对应表名）的所有关系的元组
+        if (query->cols.empty()) {      // 对应语句: SELECT *
             // select all columns
             for (auto &col : all_cols) {
                 TabCol sel_col = {.tab_name = col.tab_name, .col_name = col.name};
@@ -50,15 +66,89 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
     } else if (auto x = std::dynamic_pointer_cast<ast::UpdateStmt>(parse)) {
         /** TODO: */
 
+        // 处理表名
+        query->tables.push_back(x->tab_name);
+        /** 检查表是否存在 */
+        if (query->tables.size() == 0){
+            throw TableNotFoundError("UpdateError: table not found!");
+        }
+        /*
+        class Query{
+            std::vector<Condition> conds;
+            std::vector<std::string> tables;
+            std::vector<SetClause> set_clauses;
+
+        struct UpdateStmt : public TreeNode {
+            std::string tab_name;
+            std::vector<std::shared_ptr<SetClause>> set_clauses;
+            std::vector<std::shared_ptr<BinaryExpr>> conds;
+
+        struct SetClause {
+            TabCol lhs;
+            Value rhs;
+        
+        ast::SetClause : public TreeNode {
+            std::string col_name;
+            std::shared_ptr<Value> val;
+        */
+        // 处理要更新的列及对应的值
+        for (auto& sv_set_clause : x->set_clauses) {
+            SetClause set_clause;
+            set_clause.lhs.tab_name = x->tab_name;
+            set_clause.lhs.col_name = sv_set_clause->col_name;
+            set_clause.rhs = convert_sv_value(sv_set_clause->val);
+            query->set_clauses.push_back(set_clause);
+        }
+
+        // 处理where条件
+        get_clause(x->conds, query->conds);
+        check_clause(query->tables, query->conds);
+
     } else if (auto x = std::dynamic_pointer_cast<ast::DeleteStmt>(parse)) {
+
+        /*
+        struct DeleteStmt : public TreeNode {
+            std::string tab_name;
+            std::vector<std::shared_ptr<BinaryExpr>> conds;
+
+        class Query{
+            std::vector<Condition> conds;
+            std::vector<std::string> tables;
+        */
+
+        // 处理表名
+        query->tables.push_back(x->tab_name);
+        /** 检查表是否存在 */
+        if (query->tables.size() == 0){
+            throw TableNotFoundError("DeleteError: table not found!");
+        }
+
         //处理where条件
         get_clause(x->conds, query->conds);
         check_clause({x->tab_name}, query->conds);        
     } else if (auto x = std::dynamic_pointer_cast<ast::InsertStmt>(parse)) {
+        /*
+        struct InsertStmt : public TreeNode {
+            std::string tab_name;
+            std::vector<std::shared_ptr<Value>> vals;
+
+        class Query{
+            std::vector<std::string> tables;
+            std::vector<Value> values;
+        */
+
+        // 处理表名
+        query->tables.push_back(x->tab_name);
+        /** 检查表是否存在 */
+        if (query->tables.size() == 0){
+            throw TableNotFoundError("InsertError: table not found!");
+        }
+
         // 处理insert 的values值
         for (auto &sv_val : x->vals) {
             query->values.push_back(convert_sv_value(sv_val));
         }
+
     } else {
         // do nothing
     }
@@ -66,7 +156,7 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
     return query;
 }
 
-
+// 验证属性是否存在(
 TabCol Analyze::check_column(const std::vector<ColMeta> &all_cols, TabCol target) {
     if (target.tab_name.empty()) {
         // Table name not specified, infer table name from column name
@@ -90,6 +180,7 @@ TabCol Analyze::check_column(const std::vector<ColMeta> &all_cols, TabCol target
     return target;
 }
 
+// 用于获取给定表名列表中所有列的元数据信息，并将其存储在 all_cols 参数中。
 void Analyze::get_all_cols(const std::vector<std::string> &tab_names, std::vector<ColMeta> &all_cols) {
     for (auto &sel_tab_name : tab_names) {
         // 这里db_不能写成get_db(), 注意要传指针
@@ -98,6 +189,7 @@ void Analyze::get_all_cols(const std::vector<std::string> &tab_names, std::vecto
     }
 }
 
+// 将传入的一组条件表达式（sv_conds）转换为内部表示的条件对象（Query.conds）
 void Analyze::get_clause(const std::vector<std::shared_ptr<ast::BinaryExpr>> &sv_conds, std::vector<Condition> &conds) {
     conds.clear();
     for (auto &expr : sv_conds) {
@@ -115,6 +207,7 @@ void Analyze::get_clause(const std::vector<std::shared_ptr<ast::BinaryExpr>> &sv
     }
 }
 
+// 检查条件集合（conds）中的条件是否合法和兼容
 void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vector<Condition> &conds) {
     // auto all_cols = get_all_cols(tab_names);
     std::vector<ColMeta> all_cols;
@@ -144,7 +237,7 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
     }
 }
 
-
+// 将抽象语法树（AST）中的值转换为查询引擎内部使用的值类型
 Value Analyze::convert_sv_value(const std::shared_ptr<ast::Value> &sv_val) {
     Value val;
     if (auto int_lit = std::dynamic_pointer_cast<ast::IntLit>(sv_val)) {
@@ -159,6 +252,7 @@ Value Analyze::convert_sv_value(const std::shared_ptr<ast::Value> &sv_val) {
     return val;
 }
 
+// 将抽象语法树（AST）中的操作符转换为查询引擎内部使用的操作符类型
 CompOp Analyze::convert_sv_comp_op(ast::SvCompOp op) {
     std::map<ast::SvCompOp, CompOp> m = {
         {ast::SV_OP_EQ, OP_EQ}, {ast::SV_OP_NE, OP_NE}, {ast::SV_OP_LT, OP_LT},
