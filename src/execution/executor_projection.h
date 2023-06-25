@@ -66,17 +66,17 @@ class ProjectionExecutor : public AbstractExecutor {
 
         if (record) {
             // 创建一个向量来存储投影后的记录数据
-            std::vector<char> data(len_);
+            char* data = new char[len_];  // 分配内存
 
             // 遍历选定的列，并复制对应的数据
             for (size_t i = 0; i < sel_idxs_.size(); ++i) {
                 size_t sel_idx = sel_idxs_[i];
                 size_t offset = cols_[i].offset;
-                std::memcpy(data.data() + offset, record->data + prev_->cols()[sel_idx].offset, cols_[i].len);
+                std::memcpy(data + offset, record->data + prev_->cols()[sel_idx].offset, cols_[i].len);
             }
 
             // 使用投影后的数据创建一个新的 RmRecord，并返回它
-            return std::make_unique<RmRecord>(std::move(data));
+            return std::make_unique<RmRecord>(len_,data);
         }
         return nullptr;
     }
