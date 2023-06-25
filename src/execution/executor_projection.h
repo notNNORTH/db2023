@@ -18,9 +18,17 @@ See the Mulan PSL v2 for more details. */
 class ProjectionExecutor : public AbstractExecutor {
    private:
     std::unique_ptr<AbstractExecutor> prev_;        // 投影节点的儿子节点
+    /*
+    在查询执行计划中，投影操作通常是位于查询计划的顶层，它的作用是选择和投影出特定的列或字段。
+    子节点是指在查询计划中位于投影操作之前的其他操作节点，它们的输出结果将作为投影操作的输入。
+    子节点的作用是提供数据源或进行数据转换，为投影操作提供所需的数据。
+    子节点可以是扫描操作（如表扫描或索引扫描）、过滤操作（如谓词过滤）或其他转换操作（如连接、聚合等）。
+    子节点的输出将作为投影操作的输入，投影操作将从子节点的输出中选择指定的列，并进行投影操作，生成最终的结果。
+    */
     std::vector<ColMeta> cols_;                     // 需要投影的字段
     size_t len_;                                    // 字段总长度
-    std::vector<size_t> sel_idxs_;                  
+    std::vector<size_t> sel_idxs_;
+    std::unique_ptr<RmRecord> curr_record_;                  
 
    public:
     ProjectionExecutor(std::unique_ptr<AbstractExecutor> prev, const std::vector<TabCol> &sel_cols) {
@@ -39,11 +47,37 @@ class ProjectionExecutor : public AbstractExecutor {
         len_ = curr_offset;
     }
 
-    void beginTuple() override {}
+    void beginTuple() override {
+        prev_->beginTuple();
+    }
 
-    void nextTuple() override {}
+    void nextTuple() override {
+        prev_->nextTuple();
+        curr_record_ = Next();
+    }
 
     std::unique_ptr<RmRecord> Next() override {
+
+        if (curr_record_) {
+            return std::move(curr_record_);
+        }
+
+        std::unique_ptr<RmRecord> record = prev_->Next();
+
+        if (record) {
+            // 创建一个向量来存储投影后的记录数据
+            std::vector<char> data(len_);
+
+            // 遍历选定的列，并复制对应的数据
+            for (size_t i = 0; i < sel_idxs_.size(); ++i) {
+                size_t sel_idx = sel_idxs_[i];
+                size_t offset = cols_[i].offset;
+                std::memcpy(data.data() + offset, record->data + prev_->cols()[sel_idx].offset, cols_[i].len);
+            }
+
+            // 使用投影后的数据创建一个新的 RmRecord，并返回它
+            return std::make_unique<RmRecord>(std::move(data));
+        }
         return nullptr;
     }
 

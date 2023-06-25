@@ -163,6 +163,10 @@ class SeqScanExecutor : public AbstractExecutor {
         rid_=scan_->rid();
     }
 
+    bool is_end() const {
+    	return rid_.slot_no == -1;
+    }
+
     std::unique_ptr<RmRecord> Next() override {
 
         //-1表明为空或到达了末尾
