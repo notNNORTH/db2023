@@ -44,16 +44,55 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     }
 
     void beginTuple() override {
-
+        left_->beginTuple();
+        right_->beginTuple();
     }
 
     void nextTuple() override {
-        
+        //对每个左节点遍历右节点,
+        if(!right_ -> is_end()){
+            right_ -> nextTuple();
+        }
+        else if(left_ -> is_end()){
+            left_ -> nextTuple();
+            right_ -> beginTuple();            
+        }
+        else{
+            isend = true ;
+        }
     }
 
+    
+
     std::unique_ptr<RmRecord> Next() override {
+        if(isend) return nullptr;
+        //将左右节点组合，不知道要不要进行条件判断,待改进————————————————————————————————
+        else{
+            std::unique_ptr<RmRecord> Left = left_->Next ();
+            std::unique_ptr<RmRecord> Right = left_->Next ();
+            char* Data;
+            char* LeftData = Left -> data;
+            char* RightData = Right ->data;
+            char *DataSec = Data + Left -> size;
+            memcpy(Data , LeftData , Left -> size);            
+            memcpy(DataSec , RightData , Right -> size);
+            return std::unique_ptr<RmRecord>(new RmRecord(len_ , Data));
+        }
+        
+        
         return nullptr;
     }
 
     Rid &rid() override { return _abstract_rid; }
+    
+    //自己加的
+
+    // size_t tupleLen() const override {
+    //     return 0;
+    // }
+    
+    // std::vector<ColMeta> &cols() const override {
+    //     std::vector<ColMeta> *_cols = nullptr;
+    //     return *_cols;
+    // };
 };
