@@ -18,7 +18,7 @@ See the Mulan PSL v2 for more details. */
 class InsertExecutor : public AbstractExecutor {
    private:
     TabMeta tab_;                   // 表的元数据
-    std::vector<Value> values_;     // 需要插入的数据
+    std::vector<Value> values_;     // 需要插入的数据, Value_代表一个数据，如（“王二萌”，10），存在一个vector中
     RmFileHandle *fh_;              // 表的数据文件句柄
     std::string tab_name_;          // 表名称
     Rid rid_;                       // 插入的位置，由于系统默认插入时不指定位置，因此当前rid_在插入后才赋值
@@ -43,7 +43,7 @@ class InsertExecutor : public AbstractExecutor {
         for (size_t i = 0; i < values_.size(); i++) {
             auto &col = tab_.cols[i];
             auto &val = values_[i];
-            if (col.type != val.type) {
+            if (col.type != val.type) {     // 检查插入数据与该位置属性是否一致
                 throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
             }
             val.init_raw(col.len);
