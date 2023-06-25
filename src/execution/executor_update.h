@@ -54,9 +54,16 @@ class UpdateExecutor : public AbstractExecutor {
 
         // 4.根据set_clauses_中的设定，更新记录的对应字段
         for (const auto& set_clause : set_clauses_) {
-            auto& col = tab_.ColName_to_ColMeta[set_clause.lhs.col_name];
-            auto& val = const_cast<Value&>(set_clause.rhs);
+            
+            // 判断插入的属性是否存在
+            const auto& it = tab_.ColName_to_ColMeta.find(set_clause.lhs.col_name);
+            if (it == tab_.ColName_to_ColMeta.end()){
+                throw ColumnNotFoundError(set_clause.lhs.col_name);
+            }
 
+            // 判断插入值和属性类型是否一致
+            auto& col = it->second;
+            auto& val = const_cast<Value&>(set_clause.rhs);
             if (col.type != val.type) {
                 throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
             }
