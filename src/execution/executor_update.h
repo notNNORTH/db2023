@@ -56,13 +56,22 @@ class UpdateExecutor : public AbstractExecutor {
         for (const auto& set_clause : set_clauses_) {
             
             // 判断插入的属性是否存在
-            const auto& it = tab_.ColName_to_ColMeta.find(set_clause.lhs.col_name);
-            if (it == tab_.ColName_to_ColMeta.end()){
+            const auto& it = tab_.cols;
+            bool found = false;
+            int i=0;
+            for (const auto& element : it) {
+                if (element.tab_name == set_clause.lhs.tab_name&&element.name == set_clause.lhs.col_name) {
+                    found = true;
+                    break;
+                }
+                i++;   
+            }
+            if (!found){
                 throw ColumnNotFoundError(set_clause.lhs.col_name);
             }
 
             // 判断插入值和属性类型是否一致
-            auto& col = it->second;
+            auto& col = it[i];
             auto& val = const_cast<Value&>(set_clause.rhs);
             if (col.type != val.type) {
                 throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
