@@ -35,7 +35,7 @@ public:
     ProjectionExecutor(std::unique_ptr<AbstractExecutor> prev, const std::vector<TabCol> &sel_cols)
     {
         prev_ = std::move(prev);
-
+        //std::unique_ptr<SeqScanExecutor> prev_after_choose=prev_;
         size_t curr_offset = 0;
         auto &prev_cols = prev_->cols();
         for (auto &sel_col : sel_cols)
@@ -88,6 +88,10 @@ public:
             return std::make_unique<RmRecord>(len_, data);
         }
         return nullptr;
+    }
+
+    bool is_end() const override{
+        return _abstract_rid.slot_no==-1;
     }
 
     Rid &rid() override { return _abstract_rid; }

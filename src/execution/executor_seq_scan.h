@@ -28,13 +28,20 @@ public:
         rid_={1,-1};
         int start_page=rid_.page_no;
         int start_slot=rid_.slot_no;
-        for(int i = start_page; i < file_handle_->file_hdr_.num_pages; i++){
+        int i;
+        for(i = start_page; i < file_handle_->file_hdr_.num_pages; i++){
             RmPageHandle page_handle = file_handle_->fetch_page_handle(i);
             if (page_handle.page_hdr->num_records != 0) {
                 rid_ = {i, Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, -1)};
                 file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
                 return;
             }
+        }
+        if(i==1&&i==file_handle_->file_hdr_.num_pages){
+            RmPageHandle page_handle = file_handle_->fetch_page_handle(i);
+            rid_ = {i, Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, -1)};
+            file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
+            return;
         }
         rid_ = {file_handle_->file_hdr_.num_pages, -1};
         return;
@@ -54,7 +61,7 @@ public:
 	    int max_pages_num=file_handle_->file_hdr_.num_pages;
 
 	    //for循环扫描
-	    for (int i = rid_.page_no; i < max_pages_num; i++) {
+	    for (int i = rid_.page_no; i <= max_pages_num; i++) {
 		    RmPageHandle page_handle = file_handle_->fetch_page_handle(i);
 
             if (page_handle.page_hdr->num_records != 0) {
@@ -108,7 +115,6 @@ class SeqScanExecutor : public AbstractExecutor {
 
     SmManager *sm_manager_;
     std::vector<ColMeta> cols_check_;         // 条件语句中所有用到列的列的元数据信息
-    std::unordered_map<std::string, ColMeta> ColName_to_ColMeta_;
 
    public:
     SeqScanExecutor(SmManager *sm_manager, std::string tab_name, std::vector<Condition> conds, Context *context) {
@@ -120,7 +126,6 @@ class SeqScanExecutor : public AbstractExecutor {
         cols_ = tab.cols;
         len_ = cols_.back().offset + cols_.back().len;
         //hashmap
-        ColName_to_ColMeta_=tab.ColName_to_ColMeta;
         context_ = context;
 
         fed_conds_ = conds_;//后续查询优化可以从fedcond入手!!!!!!!!!!!!!!!!!!!
@@ -132,18 +137,35 @@ class SeqScanExecutor : public AbstractExecutor {
             // 检查左操作数是否为列操作数
             if (!temp_con.lhs_col.tab_name.empty() && !temp_con.lhs_col.col_name.empty()) {
                 // 查找colmeta
-                ColMeta temp=ColName_to_ColMeta_[temp_con.lhs_col.col_name];
-                // 将元数据对象添加到列的元数据向量中
-                cols_check_.push_back(temp);
+                auto tabname_in_con_left=temp_con.lhs_col.tab_name;
+                auto colname_in_con_left=temp_con.lhs_col.col_name;
+                int size=tab.cols.size();
+                for(int i=0;i<size;i++){//后续join也可能改tab，加入多表内容
+                    if((tabname_in_con_left==tab.cols[i].tab_name)&&(colname_in_con_left==tab.cols[i].name)){
+                        auto temp=tab.cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
             }
             // 检查右操作数是否为列操作数
             if (!temp_con.is_rhs_val && !temp_con.rhs_col.tab_name.empty() && !temp_con.rhs_col.col_name.empty()) {
                 // 查找colmeta
-                ColMeta temp=ColName_to_ColMeta_[temp_con.rhs_col.col_name];
-                // 将元数据对象添加到列的元数据向量中
-                cols_check_.push_back(temp);
+                auto tabname_in_con_right=temp_con.rhs_col.tab_name;
+                auto colname_in_con_right=temp_con.rhs_col.col_name;
+                int size=tab.cols.size();
+                for(int i=0;i<size;i++){//后续join也可能改tab，加入多表内容
+                    if((tabname_in_con_right==tab.cols[i].tab_name)&&(colname_in_con_right==tab.cols[i].name)){
+                        auto temp=tab.cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
             }
         }
+    }
+
+    const std::vector<ColMeta> &cols() const override {
+    // 提供适当的实现，返回具体的 ColMeta 对象或者 std::vector<ColMeta>
+        return cols_;
     }
 
     void beginTuple() override {
@@ -155,15 +177,17 @@ class SeqScanExecutor : public AbstractExecutor {
         scan_ = std::make_unique<SeqRecScan>(fh_);
         // 设置初始 RID
         rid_ = scan_->rid();
+        _abstract_rid=rid_;
 
     }
 
     void nextTuple() override {
         scan_->next();
         rid_=scan_->rid();
+        _abstract_rid=rid_;
     }
 
-    bool is_end() const {
+    bool is_end() const override{
     	return rid_.slot_no == -1;
     }
 
