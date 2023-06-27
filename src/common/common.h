@@ -38,7 +38,7 @@ struct Value {
 
     std::shared_ptr<RmRecord> raw;  // raw record buffer
 
-    void set_int(int int_val_) {
+    void set_int (int int_val_) {
         type = TYPE_INT;
         int_val = int_val_;
     }
@@ -89,9 +89,10 @@ struct SetClause {
 
 class ConditionEvaluator {
 public:
-    static bool evaluate(const Condition& condition, const std::vector<ColMeta>& cols, const RmRecord& record) {
-        const Value& lhsValue = getOperandValue(condition.lhs_col, cols, record);
-        const Value& rhsValue = getOperandValue(condition.rhs_col, cols, record, condition.rhs_val);
+    bool evaluate(Condition& condition, std::vector<ColMeta>& cols, RmRecord& record) {
+        Value invalid=Value{};
+        Value& lhsValue = getOperandValue(condition.lhs_col, cols, record, invalid);
+        Value& rhsValue = getOperandValue(condition.rhs_col, cols, record, condition.rhs_val);
 
         switch (condition.op) {
             case OP_EQ:
@@ -112,16 +113,35 @@ public:
     }
 
 private:
-    static const Value& getOperandValue(const TabCol& col, const std::vector<ColMeta>& cols, const RmRecord& record, const Value& value = {}) {
+    Value& getOperandValue(TabCol& col, std::vector<ColMeta>& cols, RmRecord& record, Value& value) {
+        
         if (col.tab_name.empty() && col.col_name.empty()) {
             // 使用常量值
             return value;
         } else {
             // 使用列值
+            value=Value{};
             for (const auto& meta : cols) {
                 if (meta.tab_name == col.tab_name && meta.name == col.col_name) {
-                    char* dataPtr = record.data + meta.offset;
-                    return *reinterpret_cast<Value*>(dataPtr);
+                    auto type=meta.type;
+                    if(type==TYPE_INT){
+                        char* charPointer1 = reinterpret_cast<char*>(record.data + meta.offset);  
+                        int int_val = *reinterpret_cast<int*>(charPointer1);
+                        value.set_int(int_val);
+                        value.init_raw(meta.len);
+                        return value;
+                    }else if(type==TYPE_FLOAT){
+                        char* charPointer2 = reinterpret_cast<char*>(record.data + meta.offset);  
+                        float float_val = *reinterpret_cast<float*>(charPointer2);
+                        value.set_float(float_val);
+                        value.init_raw(meta.len);
+                        return value;
+                    }else if(TYPE_STRING){
+                        char* charPointer3 = reinterpret_cast<char*>(record.data + meta.offset);  
+                        value.set_str(charPointer3);
+                        value.init_raw(meta.len);
+                        return value;
+                    }
                 }
             }
             throw std::string("Invalid column reference");
@@ -129,50 +149,50 @@ private:
     }
 
     static bool isEqual(const Value& lhs, const Value& rhs) {
-        if (lhs.type != rhs.type) {
-            throw std::string("Type mismatch in comparison");
-        }
-        switch (lhs.type) {
-            case TYPE_INT:
-                return lhs.int_val == rhs.int_val;
-            case TYPE_FLOAT:
-                return lhs.float_val == rhs.float_val;
-            case TYPE_STRING:
-                return lhs.str_val == rhs.str_val;
-            default:
-                throw std::string("Invalid value type");
+        if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
+            return lhs.int_val == rhs.float_val;
+        }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
+            return lhs.float_val == rhs.int_val;
+        }else if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_INT)){
+            return lhs.int_val == rhs.int_val;
+        }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_FLOAT)){
+            return lhs.float_val == rhs.float_val;
+        }else if((lhs.type==TYPE_STRING)&&(rhs.type==TYPE_STRING)){
+            return lhs.str_val == rhs.str_val;
+        }else{
+            throw std::string("Invalid value type");
         }
     }
 
     static bool isLessThan(const Value& lhs, const Value& rhs) {
-        if (lhs.type != rhs.type) {
-            throw std::string("Type mismatch in comparison");
-        }
-        switch (lhs.type) {
-            case TYPE_INT:
-                return lhs.int_val < rhs.int_val;
-            case TYPE_FLOAT:
-                return lhs.float_val < rhs.float_val;
-            case TYPE_STRING:
-                return lhs.str_val < rhs.str_val;
-            default:
-                throw std::string("Invalid value type");
+        if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
+            return lhs.int_val < rhs.float_val;
+        }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
+            return lhs.float_val < rhs.int_val;
+        }else if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_INT)){
+            return lhs.int_val < rhs.int_val;
+        }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_FLOAT)){
+            return lhs.float_val < rhs.float_val;
+        }else if((lhs.type==TYPE_STRING)&&(rhs.type==TYPE_STRING)){
+            return lhs.str_val < rhs.str_val;
+        }else{
+            throw std::string("Invalid value type");
         }
     }
 
     static bool isGreaterThan(const Value& lhs, const Value& rhs) {
-        if (lhs.type != rhs.type) {
-            throw std::string("Type mismatch in comparison");
-        }
-        switch (lhs.type) {
-            case TYPE_INT:
-                return lhs.int_val > rhs.int_val;
-            case TYPE_FLOAT:
-                return lhs.float_val > rhs.float_val;
-            case TYPE_STRING:
-                return lhs.str_val > rhs.str_val;
-            default:
-                throw std::string("Invalid value type");
+        if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
+            return lhs.int_val > rhs.float_val;
+        }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
+            return lhs.float_val > rhs.int_val;
+        }else if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_INT)){
+            return lhs.int_val > rhs.int_val;
+        }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_FLOAT)){
+            return lhs.float_val > rhs.float_val;
+        }else if((lhs.type==TYPE_STRING)&&(rhs.type==TYPE_STRING)){
+            return lhs.str_val > rhs.str_val;
+        }else{
+            throw std::string("Invalid value type");
         }
     }
 
