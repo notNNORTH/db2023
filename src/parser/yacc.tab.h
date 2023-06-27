@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_YY_HOME_LZP_DB2023_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
-# define YY_YY_HOME_LZP_DB2023_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
+#ifndef YY_YY_HOME_RZ_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
+# define YY_YY_HOME_RZ_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -76,14 +76,16 @@ extern int yydebug;
     TXN_ABORT = 286,
     TXN_ROLLBACK = 287,
     ORDER_BY = 288,
-    LEQ = 289,
-    NEQ = 290,
-    GEQ = 291,
-    T_EOF = 292,
-    IDENTIFIER = 293,
-    VALUE_STRING = 294,
-    VALUE_INT = 295,
-    VALUE_FLOAT = 296
+    BIGINT = 289,
+    LEQ = 290,
+    NEQ = 291,
+    GEQ = 292,
+    T_EOF = 293,
+    IDENTIFIER = 294,
+    VALUE_STRING = 295,
+    VALUE_INT = 296,
+    VALUE_FLOAT = 297,
+    VALUE_BIGINT = 298
   };
 #endif
 
@@ -107,4 +109,4 @@ struct YYLTYPE
 
 int yyparse (void);
 
-#endif /* !YY_YY_HOME_LZP_DB2023_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED  */
+#endif /* !YY_YY_HOME_RZ_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED  */
