@@ -137,8 +137,9 @@ private:
                         value.init_raw(meta.len);
                         return value;
                     }else if(TYPE_STRING){
-                        char* charPointer3 = reinterpret_cast<char*>(record.data + meta.offset);  
-                        value.set_str(charPointer3);
+                        char* charPointer3 = reinterpret_cast<char*>(record.data + meta.offset); 
+                        std::string str(charPointer3, charPointer3+meta.len); 
+                        value.set_str(str);
                         value.init_raw(meta.len);
                         return value;
                     }

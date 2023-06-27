@@ -48,3 +48,59 @@ failure
 failure
 | name | id | score |
 failure
+| score | name | id |
+| 95.000000 | Data | 2 |
+| 94.000000 | Datb | 2 |
+| name | id | score |
+| Data | 2 | 95.000000 |
+| Datb | 2 | 94.000000 |
+| score | name | id |
+| 95.000000 | Data | 2 |
+| 94.000000 | Datb | 2 |
+| Tables |
+| grade |
+| name | id | score |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| Data | 2 | 95.000000 |
+| Calc | 2 | 92.000000 |
+| Calc | 1 | 88.500000 |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| Data | 2 | 95.000000 |
+| score | name | id |
+| 90.500000 | Data | 1 |
+| 95.000000 | Data | 2 |
+| score | name | id |
+| 90.500000 | Data | 1 |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| Data | 2 | 95.000000 |
+| Calc | 2 | 92.000000 |
+| Calc | 1 | 88.500000 |
+| score | name | id |
+| 90.500000 | Data | 1 |
+| 95.000000 | Data | 2 |
+| 92.000000 | Calc | 2 |
+| id |
+failure
+| id |
+failure
+| id |
+failure
+| id |
+failure
+| id |
+failure
+| id |
+failure
+| id |
+failure
+| id |
+failure
+| id |
+| 1 |
+| 2 |
+| name |
+| Data |
+| Calc |
