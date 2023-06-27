@@ -2,3 +2,4 @@
 .DS_Store
 build
 rmdb_client/build
+test
