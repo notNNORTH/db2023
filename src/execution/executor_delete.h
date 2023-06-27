@@ -20,9 +20,13 @@ class DeleteExecutor : public AbstractExecutor {
     TabMeta tab_;                   // 表的元数据
     std::vector<Condition> conds_;  // delete的条件
     RmFileHandle *fh_;              // 表的数据文件句柄
-    std::vector<Rid> rids_;         // 需要删除的记录的位置
+    std::vector<Rid> rids_;         // 记录的位置
     std::string tab_name_;          // 表名称
     SmManager *sm_manager_;
+
+
+    std::vector<Condition> fed_conds_;  // 同conds_，两个字段相同--by 星穹铁道高手
+    std::vector<ColMeta> cols_check_;   // 条件语句中所有用到列的列的元数据信息--by 星穹铁道高手
 
    public:
     DeleteExecutor(SmManager *sm_manager, const std::string &tab_name, std::vector<Condition> conds,
@@ -34,25 +38,72 @@ class DeleteExecutor : public AbstractExecutor {
         conds_ = conds;
         rids_ = rids;
         context_ = context;
+
+
+                /****************by 星穹铁道高手***************/
+        fed_conds_ = conds_;    //后续查询优化可以从fedcond入手!!!!!!!!!!!!!!!!!!!
+        //初始化条件语句中所有用到列的列的元数据信息
+        int con_size = fed_conds_.size();
+        for (int loop = 0; loop < con_size; loop++) {
+            auto temp_con = fed_conds_[loop];
+
+            // 检查左操作数是否为列操作数
+            if (!temp_con.lhs_col.tab_name.empty() && !temp_con.lhs_col.col_name.empty()) {
+                // 查找colmeta
+                int size = tab_.cols.size();
+                for(int i = 0; i < size; i++){//后续join也可能改tab，加入多表内容
+                    if((temp_con.lhs_col.tab_name == tab_.cols[i].tab_name) 
+                                && (temp_con.lhs_col.col_name == tab_.cols[i].name)){
+                        auto temp = tab_.cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+            }
+            // 检查右操作数是否为列操作数
+            if (!temp_con.is_rhs_val && !temp_con.rhs_col.tab_name.empty() && !temp_con.rhs_col.col_name.empty()) {
+                // 查找colmeta
+                int size = tab_.cols.size();
+                for(int i = 0; i < size; i++){//后续join也可能改tab，加入多表内容
+                    if((temp_con.rhs_col.tab_name == tab_.cols[i].tab_name) 
+                                && (temp_con.rhs_col.col_name == tab_.cols[i].name)){
+                        auto temp = tab_.cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+            }
+
+        }
     }
 
     std::unique_ptr<RmRecord> Next() override {
-        // 1.检查是否还有待删除的记录
-        if (rids_.empty()) {
-            return nullptr;  // 所有记录已删除，返回 nullptr 表示完成删除操作
-        }
-        
-        // 2.获取最后一个待删除记录的位置
-        Rid rid = rids_.back();
-        rids_.pop_back();
-        
-        // 3.删除记录
-        fh_->delete_record(rid, context_);
 
-        // TODO(by lzp)
-        // 4.删除索引
-        
-        return nullptr;
+        std::vector<Rid> rids_delete;
+        // 1.检查是否还有待删除的记录
+        for (auto &rid : rids_){
+
+            // 2.通过记录ID使用文件处理器（fh_）获取该记录的内容（RmRecord对象）
+            RmRecord rec = *fh_->get_record(rid, context_);
+            
+            // 3.判断 WHERE 后面的condition
+            bool do_delete = true;
+            for (Condition &cond : conds_){
+                ConditionEvaluator Cal;
+                do_delete = Cal.evaluate(cond, cols_check_, rec);
+            }
+            
+            if (do_delete){
+                rids_delete.push_back(rid);
+            }
+        }
+
+        // 4.删除记录
+        for (auto &rid : rids_delete){
+            fh_->delete_record(rid, context_);
+
+            // TODO(by 星穹铁道高手)
+            // 5.删除索引
+        }
+
     }
 
     Rid &rid() override { return _abstract_rid; }
