@@ -32,28 +32,24 @@ public:
         // 已分配页面大于1时, 获取第一个记录位置的rid
         int num_pages = file_handle_->file_hdr_.num_pages;  // 文件中分配页面的个数
         if (num_pages > 1){
+            bool found = false;
             for(i = start_page; i < num_pages; i++){
                 RmPageHandle page_handle = file_handle_->fetch_page_handle(i);
                 if (page_handle.page_hdr->num_records == 0){    // 记录数为0，空页
                     rid_ = {i, -1};
+                    file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
+                    continue;
                 }
                 else{   // 记录非空，找到第一个有记录的位置
                     rid_ = {i, Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, -1)};
+                    file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
+                    return;    
                 }
-                file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
-                return;            
             }
         }
-        rid_ = {0, -1};
+        rid_ = {-1, -1};
         return;
     }
-        //if(i == 1 && i == file_handle_->file_hdr_.num_pages){
-        //    RmPageHandle page_handle = file_handle_->fetch_page_handle(i);
-        //    rid_ = {i, Bitmap::next_bit(true, page_handle.bitmap, page_handle.file_hdr->num_records_per_page, -1)};
-        //    file_handle_->buffer_pool_manager_->unpin_page(page_handle.page->get_page_id(), false);
-        //    return;
-        //}
-        //rid_ = {file_handle_->file_hdr_.num_pages, -1};
 
 
     void next() override {
@@ -201,10 +197,6 @@ class SeqScanExecutor : public AbstractExecutor {
 
     std::unique_ptr<RmRecord> Next() override {
 
-        //-1表明为空或到达了末尾
-        if(rid_.slot_no == -1){
-            return nullptr;
-        }
         //进入循环，寻找到符合条件的record就返回，否则继续取下一条record
         for(;!scan_->is_end();nextTuple()){
 
@@ -216,15 +208,18 @@ class SeqScanExecutor : public AbstractExecutor {
             bool add = true;        // 是否返回该记录
 
             for (int i = 0; i < cond_num; i++){
-                if( !ConditionEvaluator::evaluate(conds_[i], cols_check_, *record_for_check) ){
+                ConditionEvaluator Cal;
+                bool t_o_f=Cal.evaluate(conds_[i], cols_check_, *record_for_check);
+                if(!t_o_f){
                     //一旦有一个condition为false就终止求条件表达式值, continue, 取下一条记录
                     add = false;
                     break;
                 }
             }
-
+            if (!add){continue;}
             return record_for_check;
         }
+        return nullptr;
     }
 
     Rid &rid() override { return rid_; }

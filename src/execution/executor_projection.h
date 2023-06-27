@@ -29,7 +29,7 @@ private:
     std::vector<ColMeta> cols_; // 需要投影的字段
     size_t len_;                // 字段总长度
     std::vector<size_t> sel_idxs_;
-    std::unique_ptr<RmRecord> curr_record_;
+    //std::unique_ptr<RmRecord> curr_record_;
 
 public:
     ProjectionExecutor(std::unique_ptr<AbstractExecutor> prev, const std::vector<TabCol> &sel_cols)
@@ -58,16 +58,17 @@ public:
     void nextTuple() override
     {
         prev_->nextTuple();
-        curr_record_ = Next();
+        _abstract_rid=prev_->_abstract_rid;
+        //curr_record_ = Next();
     }
 
     std::unique_ptr<RmRecord> Next() override
     {
 
-        if (curr_record_)
+        /*if (curr_record_)
         {
             return std::move(curr_record_);
-        }
+        }*/
 
         std::unique_ptr<RmRecord> record = prev_->Next();
 
@@ -81,17 +82,27 @@ public:
             {
                 size_t sel_idx = sel_idxs_[i];
                 size_t offset = cols_[i].offset;
-                std::memcpy(data + offset, record->data + prev_->cols()[sel_idx].offset, cols_[i].len);
+                size_t origin_offset=prev_->cols()[sel_idx].offset;
+                char* dest=data+offset;
+                char* src=record->data + origin_offset;
+                size_t length=cols_[i].len;
+                std::memcpy(dest, src, length);
             }
 
             // 使用投影后的数据创建一个新的 RmRecord，并返回它
-            return std::make_unique<RmRecord>(len_, data);
+            auto temp=std::make_unique<RmRecord>(len_, data);
+            return temp;
         }
         return nullptr;
     }
 
     bool is_end() const override{
-        return _abstract_rid.slot_no==-1;
+        return prev_->_abstract_rid.slot_no==-1;
+    }
+
+    const std::vector<ColMeta> &cols() const override {
+    // 提供适当的实现，返回具体的 ColMeta 对象或者 std::vector<ColMeta>
+        return cols_;
     }
 
     Rid &rid() override { return _abstract_rid; }
