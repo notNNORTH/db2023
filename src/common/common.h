@@ -35,6 +35,7 @@ struct Value {
         float float_val;  // float value
     };
     std::string str_val;  // string value
+    BigInt bigint_val;
 
     std::shared_ptr<RmRecord> raw;  // raw record buffer
 
@@ -68,6 +69,11 @@ struct Value {
             }
             memset(raw->data, 0, len);
             memcpy(raw->data, str_val.c_str(), str_val.size());
+        } else if (type == TYPE_BIGINT){
+            //8byte
+            assert(len == 2*sizeof(int));
+            memset(raw->data, 0, len);
+            memcpy(raw->data, &bigint_val, len);
         }
     }
 };
@@ -139,6 +145,8 @@ private:
                 return lhs.float_val == rhs.float_val;
             case TYPE_STRING:
                 return lhs.str_val == rhs.str_val;
+            case TYPE_BIGINT:
+                return lhs.bigint_val == rhs.bigint_val;
             default:
                 throw std::string("Invalid value type");
         }
@@ -155,6 +163,8 @@ private:
                 return lhs.float_val < rhs.float_val;
             case TYPE_STRING:
                 return lhs.str_val < rhs.str_val;
+            case TYPE_BIGINT:
+                return lhs.bigint_val < rhs.bigint_val;
             default:
                 throw std::string("Invalid value type");
         }
@@ -170,7 +180,7 @@ private:
             case TYPE_FLOAT:
                 return lhs.float_val > rhs.float_val;
             case TYPE_STRING:
-                return lhs.str_val > rhs.str_val;
+                return lhs.bigint_val > rhs.bigint_val;
             default:
                 throw std::string("Invalid value type");
         }
