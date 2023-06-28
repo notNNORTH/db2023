@@ -62,7 +62,7 @@
 
 
 /* Copy the first part of user declarations.  */
-#line 1 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:339  */
+#line 1 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:339  */
 
 #include "ast.h"
 #include "yacc.tab.h"
@@ -77,7 +77,7 @@ void yyerror(YYLTYPE *locp, const char* s) {
 
 using namespace ast;
 
-#line 81 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:339  */
+#line 81 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -97,8 +97,8 @@ using namespace ast;
 
 /* In a future release of Bison, this section will be replaced
    by #include "yacc.tab.h".  */
-#ifndef YY_YY_HOME_RZ_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
-# define YY_YY_HOME_RZ_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
+#ifndef YY_YY_HOME_RZ_WORKINGPLACE_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
+# define YY_YY_HOME_RZ_WORKINGPLACE_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -176,11 +176,11 @@ struct YYLTYPE
 
 int yyparse (void);
 
-#endif /* !YY_YY_HOME_RZ_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED  */
+#endif /* !YY_YY_HOME_RZ_WORKINGPLACE_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED  */
 
 /* Copy the second part of user declarations.  */
 
-#line 184 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:358  */
+#line 184 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -1446,505 +1446,505 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 58 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 58 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         parse_tree = (yyvsp[-1].sv_node);
         YYACCEPT;
     }
-#line 1455 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1455 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 3:
-#line 63 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 63 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         parse_tree = std::make_shared<Help>();
         YYACCEPT;
     }
-#line 1464 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1464 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 4:
-#line 68 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 68 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         parse_tree = nullptr;
         YYACCEPT;
     }
-#line 1473 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1473 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 5:
-#line 73 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 73 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         parse_tree = nullptr;
         YYACCEPT;
     }
-#line 1482 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1482 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 10:
-#line 88 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 88 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<TxnBegin>();
     }
-#line 1490 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1490 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 11:
-#line 92 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 92 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<TxnCommit>();
     }
-#line 1498 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1498 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 12:
-#line 96 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 96 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<TxnAbort>();
     }
-#line 1506 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1506 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 13:
-#line 100 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 100 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<TxnRollback>();
     }
-#line 1514 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1514 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 14:
-#line 107 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 107 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<ShowTables>();
     }
-#line 1522 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1522 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 15:
-#line 114 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 114 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<CreateTable>((yyvsp[-3].sv_str), (yyvsp[-1].sv_fields));
     }
-#line 1530 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1530 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 16:
-#line 118 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 118 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<DropTable>((yyvsp[0].sv_str));
     }
-#line 1538 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1538 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 17:
-#line 122 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 122 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<DescTable>((yyvsp[0].sv_str));
     }
-#line 1546 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1546 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 18:
-#line 126 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 126 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<CreateIndex>((yyvsp[-3].sv_str), (yyvsp[-1].sv_strs));
     }
-#line 1554 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1554 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 19:
-#line 130 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 130 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<DropIndex>((yyvsp[-3].sv_str), (yyvsp[-1].sv_strs));
     }
-#line 1562 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1562 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 20:
-#line 137 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 137 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<InsertStmt>((yyvsp[-4].sv_str), (yyvsp[-1].sv_vals));
     }
-#line 1570 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1570 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 21:
-#line 141 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 141 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<DeleteStmt>((yyvsp[-1].sv_str), (yyvsp[0].sv_conds));
     }
-#line 1578 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1578 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 22:
-#line 145 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 145 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<UpdateStmt>((yyvsp[-3].sv_str), (yyvsp[-1].sv_set_clauses), (yyvsp[0].sv_conds));
     }
-#line 1586 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1586 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 23:
-#line 149 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 149 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_node) = std::make_shared<SelectStmt>((yyvsp[-4].sv_cols), (yyvsp[-2].sv_strs), (yyvsp[-1].sv_conds), (yyvsp[0].sv_orderby));
     }
-#line 1594 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1594 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 24:
-#line 156 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 156 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_fields) = std::vector<std::shared_ptr<Field>>{(yyvsp[0].sv_field)};
     }
-#line 1602 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1602 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 25:
-#line 160 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 160 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_fields).push_back((yyvsp[0].sv_field));
     }
-#line 1610 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1610 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 26:
-#line 167 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 167 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_strs) = std::vector<std::string>{(yyvsp[0].sv_str)};
     }
-#line 1618 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1618 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 27:
-#line 171 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 171 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_strs).push_back((yyvsp[0].sv_str));
     }
-#line 1626 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1626 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 28:
-#line 178 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 178 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_field) = std::make_shared<ColDef>((yyvsp[-1].sv_str), (yyvsp[0].sv_type_len));
     }
-#line 1634 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1634 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 29:
-#line 185 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 185 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_type_len) = std::make_shared<TypeLen>(SV_TYPE_INT, sizeof(int));
     }
-#line 1642 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1642 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 30:
-#line 189 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 189 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_type_len) = std::make_shared<TypeLen>(SV_TYPE_STRING, (yyvsp[-1].sv_int));
     }
-#line 1650 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1650 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 31:
-#line 193 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 193 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_type_len) = std::make_shared<TypeLen>(SV_TYPE_FLOAT, sizeof(float));
     }
-#line 1658 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1658 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 32:
-#line 197 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 197 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_type_len) = std::make_shared<TypeLen>(SV_TYPE_BIGINT, sizeof(BigInt));
     }
-#line 1666 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1666 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 33:
-#line 204 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 204 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_vals) = std::vector<std::shared_ptr<Value>>{(yyvsp[0].sv_val)};
     }
-#line 1674 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1674 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 34:
-#line 208 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 208 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_vals).push_back((yyvsp[0].sv_val));
     }
-#line 1682 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1682 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 35:
-#line 215 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 215 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_val) = std::make_shared<IntLit>((yyvsp[0].sv_int));
     }
-#line 1690 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1690 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 36:
-#line 219 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 219 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_val) = std::make_shared<FloatLit>((yyvsp[0].sv_float));
     }
-#line 1698 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1698 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 37:
-#line 223 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 223 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_val) = std::make_shared<StringLit>((yyvsp[0].sv_str));
     }
-#line 1706 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1706 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 38:
-#line 227 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 227 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_val) = std::make_shared<BigIntLit>((yyvsp[0].sv_bigint));
     }
-#line 1714 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1714 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 39:
-#line 234 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 234 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_cond) = std::make_shared<BinaryExpr>((yyvsp[-2].sv_col), (yyvsp[-1].sv_comp_op), (yyvsp[0].sv_expr));
     }
-#line 1722 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1722 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 40:
-#line 240 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 240 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { /* ignore*/ }
-#line 1728 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1728 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 41:
-#line 242 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 242 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_conds) = (yyvsp[0].sv_conds);
     }
-#line 1736 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1736 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 42:
-#line 249 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 249 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_conds) = std::vector<std::shared_ptr<BinaryExpr>>{(yyvsp[0].sv_cond)};
     }
-#line 1744 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1744 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 43:
-#line 253 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 253 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_conds).push_back((yyvsp[0].sv_cond));
     }
-#line 1752 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1752 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 44:
-#line 260 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 260 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_col) = std::make_shared<Col>((yyvsp[-2].sv_str), (yyvsp[0].sv_str));
     }
-#line 1760 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1760 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 45:
-#line 264 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 264 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_col) = std::make_shared<Col>("", (yyvsp[0].sv_str));
     }
-#line 1768 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1768 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 46:
-#line 271 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 271 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_cols) = std::vector<std::shared_ptr<Col>>{(yyvsp[0].sv_col)};
     }
-#line 1776 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1776 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 47:
-#line 275 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 275 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_cols).push_back((yyvsp[0].sv_col));
     }
-#line 1784 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1784 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 48:
-#line 282 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 282 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_comp_op) = SV_OP_EQ;
     }
-#line 1792 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1792 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 49:
-#line 286 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 286 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_comp_op) = SV_OP_LT;
     }
-#line 1800 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1800 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 50:
-#line 290 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 290 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_comp_op) = SV_OP_GT;
     }
-#line 1808 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1808 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 294 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 294 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_comp_op) = SV_OP_NE;
     }
-#line 1816 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1816 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 298 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 298 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_comp_op) = SV_OP_LE;
     }
-#line 1824 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1824 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 302 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 302 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_comp_op) = SV_OP_GE;
     }
-#line 1832 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1832 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 309 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 309 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_expr) = std::static_pointer_cast<Expr>((yyvsp[0].sv_val));
     }
-#line 1840 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1840 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 313 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 313 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_expr) = std::static_pointer_cast<Expr>((yyvsp[0].sv_col));
     }
-#line 1848 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1848 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 56:
-#line 320 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 320 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_set_clauses) = std::vector<std::shared_ptr<SetClause>>{(yyvsp[0].sv_set_clause)};
     }
-#line 1856 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1856 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 57:
-#line 324 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 324 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_set_clauses).push_back((yyvsp[0].sv_set_clause));
     }
-#line 1864 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1864 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 58:
-#line 331 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 331 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_set_clause) = std::make_shared<SetClause>((yyvsp[-2].sv_str), (yyvsp[0].sv_val));
     }
-#line 1872 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1872 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 59:
-#line 338 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 338 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_cols) = {};
     }
-#line 1880 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1880 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 61:
-#line 346 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 346 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_strs) = std::vector<std::string>{(yyvsp[0].sv_str)};
     }
-#line 1888 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1888 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 62:
-#line 350 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 350 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_strs).push_back((yyvsp[0].sv_str));
     }
-#line 1896 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1896 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 63:
-#line 354 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 354 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     {
         (yyval.sv_strs).push_back((yyvsp[0].sv_str));
     }
-#line 1904 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1904 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 64:
-#line 361 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 361 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { 
         (yyval.sv_orderby) = (yyvsp[0].sv_orderby); 
     }
-#line 1912 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1912 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 65:
-#line 364 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 364 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { /* ignore*/ }
-#line 1918 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1918 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 66:
-#line 369 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 369 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { 
         (yyval.sv_orderby) = std::make_shared<OrderBy>((yyvsp[-1].sv_col), (yyvsp[0].sv_orderby_dir));
     }
-#line 1926 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1926 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 67:
-#line 375 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 375 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { (yyval.sv_orderby_dir) = OrderBy_ASC;     }
-#line 1932 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1932 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 68:
-#line 376 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 376 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { (yyval.sv_orderby_dir) = OrderBy_DESC;    }
-#line 1938 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1938 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
   case 69:
-#line 377 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
+#line 377 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1646  */
     { (yyval.sv_orderby_dir) = OrderBy_DEFAULT; }
-#line 1944 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1944 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
     break;
 
 
-#line 1948 "/home/rz/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
+#line 1948 "/home/rz/workingplace/code/db2023/src/parser/yacc.tab.cpp" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2179,5 +2179,5 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 383 "/home/rz/code/db2023/src/parser/yacc.y" /* yacc.c:1906  */
+#line 383 "/home/rz/workingplace/code/db2023/src/parser/yacc.y" /* yacc.c:1906  */
 

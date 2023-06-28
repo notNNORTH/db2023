@@ -159,7 +159,10 @@ extern int yydebug;
     IDENTIFIER = 285,
     VALUE_STRING = 286,
     VALUE_INT = 287,
-    VALUE_FLOAT = 288
+    VALUE_FLOAT = 288,
+    //rzdev
+    VALUE_BIGINT =289,
+    BIGINT = 290,
   };
 #endif
 
@@ -567,7 +570,7 @@ static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "SHOW", "TABLES", "CREATE", "TABLE",
   "DROP", "DESC", "INSERT", "INTO", "VALUES", "DELETE", "FROM", "WHERE",
-  "UPDATE", "SET", "SELECT", "INT", "CHAR", "FLOAT", "INDEX", "AND",
+  "UPDATE", "SET", "SELECT", "INT", "CHAR", "FLOAT","BIGINT", "INDEX", "AND",
   "JOIN", "EXIT", "HELP", "LEQ", "NEQ", "GEQ", "T_EOF", "IDENTIFIER",
   "VALUE_STRING", "VALUE_INT", "VALUE_FLOAT", "';'", "'('", "')'", "','",
   "'.'", "'='", "'<'", "'>'", "'*'", "$accept", "start", "stmt", "dbStmt",

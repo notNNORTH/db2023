@@ -46,6 +46,7 @@ private:
                 {SV_TYPE_INT,    "INT"},
                 {SV_TYPE_FLOAT,  "FLOAT"},
                 {SV_TYPE_STRING, "STRING"},
+                {SV_TYPE_BIGINT, "BIGINT"},
         };
         return m.at(type);
     }
@@ -122,7 +123,10 @@ private:
         } else if (auto x = std::dynamic_pointer_cast<StringLit>(node)) {
             std::cout << "STRING_LIT\n";
             print_val(x->val, offset);
-        } else if (auto x = std::dynamic_pointer_cast<SetClause>(node)) {
+        }else if (auto x = std::dynamic_pointer_cast<BigIntLit>(node)) {
+            std::cout << "BIGINT_LIT\n";
+            print_val(x->val, offset);
+        }else if (auto x = std::dynamic_pointer_cast<SetClause>(node)) {
             std::cout << "SET_CLAUSE\n";
             print_val(x->col_name, offset);
             print_node(x->val, offset);

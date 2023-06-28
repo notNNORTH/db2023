@@ -54,6 +54,11 @@ struct Value {
         str_val = std::move(str_val_);
     }
 
+    void set_bigint(BigInt bigint_val_) {
+        type = TYPE_BIGINT;
+        bigint_val = bigint_val_;
+    }
+
     void init_raw(int len) {
         assert(raw == nullptr);
         raw = std::make_shared<RmRecord>(len);
