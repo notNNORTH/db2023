@@ -12,8 +12,6 @@ See the Mulan PSL v2 for more details. */
 #include <vector>
 #include <string>
 #include <memory>
-//
-#include "defs.h"
 
 enum JoinType {
     INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, FULL_JOIN
@@ -21,7 +19,7 @@ enum JoinType {
 namespace ast {
 
 enum SvType {
-    SV_TYPE_INT, SV_TYPE_FLOAT, SV_TYPE_STRING,SV_TYPE_BIGINT
+    SV_TYPE_INT, SV_TYPE_FLOAT, SV_TYPE_STRING
 };
 
 enum SvCompOp {
@@ -134,12 +132,6 @@ struct StringLit : public Value {
 
     StringLit(std::string val_) : val(std::move(val_)) {}
 };
-//rz-dev
-struct BigIntLit : public Value {
-    BigInt val;
-
-    BigIntLit(BigInt val_) : val(val_) {}
-};
 
 struct Col : public Expr {
     std::string tab_name;
@@ -238,8 +230,6 @@ struct SemValue {
     int sv_int;
     float sv_float;
     std::string sv_str;
-    BigInt sv_bigint;
-
     OrderByDir sv_orderby_dir;
     std::vector<std::string> sv_strs;
 
