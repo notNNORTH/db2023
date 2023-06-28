@@ -69,14 +69,14 @@ void DiskManager::read_page(int fd, page_id_t page_no, char *offset, int num_byt
     off_t result = lseek(fd, offset_in_file, SEEK_SET);
     if (result == -1) {
         // lseek() 失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::read_page Error");
+        throw InternalError("DiskManager::read_page Error 1");
     }
 
     // 调用 read() 函数读取数据
     ssize_t bytes_read = read(fd, offset, num_bytes);
     if (bytes_read == -1 || bytes_read != num_bytes) {
         // 读取失败，抛出异常或进行错误处理
-        throw InternalError("DiskManager::read_page Error");
+        throw InternalError("DiskManager::read_page Error 2");
     }
 }
 
