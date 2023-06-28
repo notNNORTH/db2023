@@ -31,13 +31,6 @@ inline int ix_compare(const char *a, const char *b, ColType type, int col_len) {
         }
         case TYPE_STRING:
             return memcmp(a, b, col_len);
-        case TYPE_BIGINT:{
-                char *a1 = const_cast<char *>(a);
-                BigInt ba(a1);
-                char *b1 = const_cast<char *>(b);
-                BigInt bb(b1);
-                return (ba < bb) ? -1 : ((ba > bb) ? 1 : 0);
-                }
         default:
             throw InternalError("Unexpected data type");
     }
