@@ -20,10 +20,9 @@ class DeleteExecutor : public AbstractExecutor {
     TabMeta tab_;                   // 表的元数据
     std::vector<Condition> conds_;  // delete的条件
     RmFileHandle *fh_;              // 表的数据文件句柄
-    std::vector<Rid> rids_;         // 记录的位置
+    std::vector<Rid> rids_;         // 需要删除的记录的位置
     std::string tab_name_;          // 表名称
     SmManager *sm_manager_;
-
 
     std::vector<Condition> fed_conds_;  // 同conds_，两个字段相同--by 星穹铁道高手
     std::vector<ColMeta> cols_check_;   // 条件语句中所有用到列的列的元数据信息--by 星穹铁道高手
@@ -71,39 +70,48 @@ class DeleteExecutor : public AbstractExecutor {
                     }
                 }
             }
-
         }
     }
 
     std::unique_ptr<RmRecord> Next() override {
 
         std::vector<Rid> rids_delete;
-        // 1.检查是否还有待删除的记录
-        for (auto &rid : rids_){
 
+        for (auto &rid: rids_){
             // 2.通过记录ID使用文件处理器（fh_）获取该记录的内容（RmRecord对象）
             RmRecord rec = *fh_->get_record(rid, context_);
-            
+
             // 3.判断 WHERE 后面的condition
-            bool do_delete = true;
+            bool do_update = true;
             for (Condition &cond : conds_){
                 ConditionEvaluator Cal;
-                do_delete = Cal.evaluate(cond, cols_check_, rec);
+                do_update = Cal.evaluate(cond, cols_check_, rec);
             }
-            
-            if (do_delete){
+            // if(!do_update){continue;}
+
+
+            if (do_update){
                 rids_delete.push_back(rid);
             }
         }
 
-        // 4.删除记录
-        for (auto &rid : rids_delete){
+        // 1.检查是否还有待删除的记录
+        while (!rids_delete.empty())
+        {
+            // 2.获取最后一个待删除记录的位置
+            Rid rid = rids_delete.back();
+            rids_delete.pop_back();
+            
+            // 3.删除记录
             fh_->delete_record(rid, context_);
-
-            // TODO(by 星穹铁道高手)
-            // 5.删除索引
         }
+       
 
+
+        // TODO(by lzp)
+        // 4.删除索引
+        
+        return nullptr;
     }
 
     Rid &rid() override { return _abstract_rid; }
