@@ -161,22 +161,6 @@ private:
     }
 
     static bool isEqual(const Value& lhs, const Value& rhs) {
-<<<<<<< HEAD
-        if (lhs.type != rhs.type) {
-            throw std::string("Type mismatch in comparison");
-        }
-        switch (lhs.type) {
-            case TYPE_INT:
-                return lhs.int_val == rhs.int_val;
-            case TYPE_FLOAT:
-                return lhs.float_val == rhs.float_val;
-            case TYPE_STRING:
-                return lhs.str_val == rhs.str_val;
-            case TYPE_BIGINT:
-                return lhs.bigint_val == rhs.bigint_val;
-            default:
-                throw std::string("Invalid value type");
-=======
         if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
             return lhs.int_val == rhs.float_val;
         }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
@@ -189,27 +173,10 @@ private:
             return lhs.str_val == rhs.str_val;
         }else{
             throw std::string("Invalid value type");
->>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
         }
     }
 
     static bool isLessThan(const Value& lhs, const Value& rhs) {
-<<<<<<< HEAD
-        if (lhs.type != rhs.type) {
-            throw std::string("Type mismatch in comparison");
-        }
-        switch (lhs.type) {
-            case TYPE_INT:
-                return lhs.int_val < rhs.int_val;
-            case TYPE_FLOAT:
-                return lhs.float_val < rhs.float_val;
-            case TYPE_STRING:
-                return lhs.str_val < rhs.str_val;
-            case TYPE_BIGINT:
-                return lhs.bigint_val < rhs.bigint_val;
-            default:
-                throw std::string("Invalid value type");
-=======
         if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
             return lhs.int_val < rhs.float_val;
         }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
@@ -222,25 +189,10 @@ private:
             return lhs.str_val < rhs.str_val;
         }else{
             throw std::string("Invalid value type");
->>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
         }
     }
 
     static bool isGreaterThan(const Value& lhs, const Value& rhs) {
-<<<<<<< HEAD
-        if (lhs.type != rhs.type) {
-            throw std::string("Type mismatch in comparison");
-        }
-        switch (lhs.type) {
-            case TYPE_INT:
-                return lhs.int_val > rhs.int_val;
-            case TYPE_FLOAT:
-                return lhs.float_val > rhs.float_val;
-            case TYPE_STRING:
-                return lhs.bigint_val > rhs.bigint_val;
-            default:
-                throw std::string("Invalid value type");
-=======
         if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
             return lhs.int_val > rhs.float_val;
         }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
@@ -253,7 +205,6 @@ private:
             return lhs.str_val > rhs.str_val;
         }else{
             throw std::string("Invalid value type");
->>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
         }
     }
 

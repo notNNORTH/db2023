@@ -30,13 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-<<<<<<< HEAD
 #ifndef YY_YY_HOME_RZ_WORKINGPLACE_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
 # define YY_YY_HOME_RZ_WORKINGPLACE_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED
-=======
-#ifndef YY_YY_HOME_LZP_FUBEN_FUBEN_SRC_PARSER_YACC_TAB_H_INCLUDED
-# define YY_YY_HOME_LZP_FUBEN_FUBEN_SRC_PARSER_YACC_TAB_H_INCLUDED
->>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -114,8 +109,4 @@ struct YYLTYPE
 
 int yyparse (void);
 
-<<<<<<< HEAD
 #endif /* !YY_YY_HOME_RZ_WORKINGPLACE_CODE_DB2023_SRC_PARSER_YACC_TAB_H_INCLUDED  */
-=======
-#endif /* !YY_YY_HOME_LZP_FUBEN_FUBEN_SRC_PARSER_YACC_TAB_H_INCLUDED  */
->>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
