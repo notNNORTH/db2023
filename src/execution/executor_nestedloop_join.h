@@ -25,6 +25,9 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     std::vector<Condition> fed_conds_;          // join条件
     bool isend;
 
+    // std::vector<Condition> fed_conds_;  // 同conds_，两个字段相同--by 星穹铁道高手
+    std::vector<ColMeta> cols_check_;   // 条件语句中所有用到列的列的元数据信息--by 星穹铁道高手
+
    public:
     NestedLoopJoinExecutor(std::unique_ptr<AbstractExecutor> left, std::unique_ptr<AbstractExecutor> right, 
                             std::vector<Condition> conds) {
@@ -41,6 +44,58 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         isend = false;
         fed_conds_ = std::move(conds);
 
+
+                /****************by 星穹铁道高手***************/
+        // fed_conds_ = conds_;    //后续查询优化可以从fedcond入手!!!!!!!!!!!!!!!!!!!
+        //初始化条件语句中所有用到列的列的元数据信息
+   
+        int con_size = fed_conds_.size();   // 判断条件的个数
+
+
+        auto my_left_cols = left_->cols();
+        int left_size = my_left_cols.size();       // 左子树元组总数
+        auto my_right_cols = right_->cols();
+        int right_size = my_right_cols.size();       // 左子树元组总数
+
+        for (int loop = 0; loop < con_size; loop++) {
+            auto temp_con = fed_conds_[loop];
+            // 检查左操作数是否为列操作数
+            if (!temp_con.lhs_col.tab_name.empty() && !temp_con.lhs_col.col_name.empty()) {
+                // 查找colmeta
+                for(int i = 0; i < left_size; i++){     //后续join也可能改tab，加入多表内容
+                    if((temp_con.lhs_col.tab_name == my_left_cols[i].tab_name) 
+                                && (temp_con.lhs_col.col_name == my_left_cols[i].name)){
+                        auto temp = my_left_cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+                for(int i = 0; i < right_size; i++){     //后续join也可能改tab，加入多表内容
+                    if((temp_con.lhs_col.tab_name == my_right_cols[i].tab_name) 
+                                && (temp_con.lhs_col.col_name == my_right_cols[i].name)){
+                        auto temp = my_right_cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+            }
+            // 检查右操作数是否为列操作数
+            if (!temp_con.is_rhs_val && !temp_con.rhs_col.tab_name.empty() && !temp_con.rhs_col.col_name.empty()) {
+                // 查找right_colmeta
+                for(int i = 0; i < left_size; i++){//后续join也可能改tab，加入多表内容
+                    if((temp_con.rhs_col.tab_name == my_left_cols[i].tab_name) 
+                                && (temp_con.rhs_col.col_name == my_left_cols[i].name)){
+                        auto temp = my_left_cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+                for(int i = 0; i < right_size; i++){//后续join也可能改tab，加入多表内容
+                    if((temp_con.rhs_col.tab_name == my_right_cols[i].tab_name) 
+                                && (temp_con.rhs_col.col_name == my_right_cols[i].name)){
+                        auto temp = my_right_cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+            }
+        }   
     }
 
     const std::vector<ColMeta> &cols() const override {
@@ -73,27 +128,42 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     std::unique_ptr<RmRecord> Next() override {
 
         if (isend){return nullptr;}     // 虽然这句话不可能执行
-            
-        std::unique_ptr<RmRecord> left_record = left_->Next();
-        std::unique_ptr<RmRecord> right_record = right_->Next();
-
-        if (left_record == nullptr || right_record == nullptr){
-            return nullptr;
-        }
-        // 构造新的记录并返回
         
+        // 构造新的记录并返回
+        for(; !isend; nextTuple())
+        {
+            // std::unique_ptr<RmRecord> left_record = left_->Next();
+            // std::unique_ptr<RmRecord> right_record = right_->Next();
 
-        char* left_data = left_record->data;
-        char* right_data = right_record->data;
-        // 将左右记录的数据拷贝到新的记录中
+            auto left_record = left_->get_fh()->get_record(left_->rid(), nullptr);
+            auto right_record = right_->get_fh()->get_record(right_->rid(), nullptr);
 
-        char* data = new char[len_];
+            if (left_record == nullptr || right_record == nullptr){
+                return nullptr;
+            }
+            
+            // 判断是否返回该记录
+            bool ret = true;
+            for (Condition &cond : fed_conds_){
+                ConditionEvaluator Cal;
+                ret = Cal.evaluate(cond, cols_check_, *left_record, *right_record);
+            }
 
-        memcpy(data, left_data, left_->tupleLen());
-        memcpy(data + left_->tupleLen(), right_data, right_->tupleLen());
-        std::unique_ptr<RmRecord> result_record = std::make_unique<RmRecord>(len_, data);
+            if(ret){
+                char* left_data = left_record->data;
+                char* right_data = right_record->data;
 
-        return result_record;
+                // 将左右记录的数据拷贝到新的记录中
+                char* data = new char[len_];
+
+                memcpy(data, left_data, left_->tupleLen());
+                memcpy(data + left_->tupleLen(), right_data, right_->tupleLen());
+                std::unique_ptr<RmRecord> result_record = std::make_unique<RmRecord>(len_, data);
+
+                return result_record;
+            }
+        }
+        return nullptr;
     }
 
     Rid &rid() override { return _abstract_rid; }

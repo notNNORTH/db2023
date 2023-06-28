@@ -21,6 +21,8 @@ class AbstractExecutor {
 
     Context *context_;
 
+    virtual RmFileHandle *get_fh() {return nullptr;};   // by星穹铁道高手
+
     virtual ~AbstractExecutor() = default;
 
     virtual size_t tupleLen() const { return 0; };

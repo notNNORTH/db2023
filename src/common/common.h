@@ -111,6 +111,29 @@ public:
                 throw std::string("Invalid comparison operator");
         }
     }
+    bool evaluate(Condition& condition, std::vector<ColMeta>& cols, RmRecord& record_l, RmRecord& record_r){
+        Value invalid=Value{};
+        Value& lhsValue = getOperandValue(condition.lhs_col, cols, record_l, invalid);
+        Value& rhsValue = getOperandValue(condition.rhs_col, cols, record_r, condition.rhs_val);
+
+        switch (condition.op) {
+            case OP_EQ:
+                return isEqual(lhsValue, rhsValue);
+            case OP_NE:
+                return !isEqual(lhsValue, rhsValue);
+            case OP_LT:
+                return isLessThan(lhsValue, rhsValue);
+            case OP_GT:
+                return isGreaterThan(lhsValue, rhsValue);
+            case OP_LE:
+                return isLessThanOrEqual(lhsValue, rhsValue);
+            case OP_GE:
+                return isGreaterThanOrEqual(lhsValue, rhsValue);
+            default:
+                throw std::string("Invalid comparison operator");
+        }
+        
+    }
 
 private:
     Value& getOperandValue(TabCol& col, std::vector<ColMeta>& cols, RmRecord& record, Value& value) {

@@ -111,7 +111,7 @@ class SeqScanExecutor : public AbstractExecutor {
     std::string tab_name_;              // 表的名称
     std::vector<Condition> conds_;      // scan的条件
     RmFileHandle *fh_;                  // 表的数据文件句柄
-    std::vector<ColMeta> cols_;         // scan后生成的记录的字段
+    std::vector<ColMeta> cols_;         // scan后生成的记录的字段(考证为表的所有列的colmeta--by星穹铁道高手)
     size_t len_;                        // scan后生成的每条记录的长度
     std::vector<Condition> fed_conds_;  // 同conds_，两个字段相同
 
@@ -174,6 +174,8 @@ class SeqScanExecutor : public AbstractExecutor {
     }
 
     size_t tupleLen() const override{ return len_; };
+
+    RmFileHandle *get_fh() override {return fh_;};
 
     void beginTuple() override {
         // 初始化执行器的状态，准备开始遍历记录
