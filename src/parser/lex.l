@@ -41,7 +41,6 @@ value_float {sign}?{digit}+\.({digit}+)?
 value_string '[^']*'
 single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
 
-value_bigint {sign}?{digit}+
 %x STATE_COMMENT
 
 %%
@@ -86,8 +85,6 @@ value_bigint {sign}?{digit}+
 "ORDER" { return ORDER; }
 "BY" {  return BY;  }
 "ASC" { return ASC; }
-
-"BIGINT" { return BIGINT;}
     /* operators */
 ">=" { return GEQ; }
 "<=" { return LEQ; }
@@ -110,11 +107,6 @@ value_bigint {sign}?{digit}+
 {value_string} {
     yylval->sv_str = std::string(yytext + 1, strlen(yytext) - 2);
     return VALUE_STRING;
-}
-    /* rz-dev */
-{value_bigint} {
-    yylval->sv_bigint = *(new BigInt(yytext));
-    return VALUE_BIGINT;
 }
     /* EOF */
 <<EOF>> { return T_EOF; }
