@@ -35,6 +35,7 @@ struct Value {
         float float_val;  // float value
     };
     std::string str_val;  // string value
+    BigInt bigint_val;
 
     std::shared_ptr<RmRecord> raw;  // raw record buffer
 
@@ -53,6 +54,11 @@ struct Value {
         str_val = std::move(str_val_);
     }
 
+    void set_bigint(BigInt bigint_val_) {
+        type = TYPE_BIGINT;
+        bigint_val = bigint_val_;
+    }
+
     void init_raw(int len) {
         assert(raw == nullptr);
         raw = std::make_shared<RmRecord>(len);
@@ -68,6 +74,11 @@ struct Value {
             }
             memset(raw->data, 0, len);
             memcpy(raw->data, str_val.c_str(), str_val.size());
+        } else if (type == TYPE_BIGINT){
+            //8byte
+            assert(len == 2*sizeof(int));
+            memset(raw->data, 0, len);
+            memcpy(raw->data, &bigint_val, len);
         }
     }
 };
@@ -150,6 +161,22 @@ private:
     }
 
     static bool isEqual(const Value& lhs, const Value& rhs) {
+<<<<<<< HEAD
+        if (lhs.type != rhs.type) {
+            throw std::string("Type mismatch in comparison");
+        }
+        switch (lhs.type) {
+            case TYPE_INT:
+                return lhs.int_val == rhs.int_val;
+            case TYPE_FLOAT:
+                return lhs.float_val == rhs.float_val;
+            case TYPE_STRING:
+                return lhs.str_val == rhs.str_val;
+            case TYPE_BIGINT:
+                return lhs.bigint_val == rhs.bigint_val;
+            default:
+                throw std::string("Invalid value type");
+=======
         if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
             return lhs.int_val == rhs.float_val;
         }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
@@ -162,10 +189,27 @@ private:
             return lhs.str_val == rhs.str_val;
         }else{
             throw std::string("Invalid value type");
+>>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
         }
     }
 
     static bool isLessThan(const Value& lhs, const Value& rhs) {
+<<<<<<< HEAD
+        if (lhs.type != rhs.type) {
+            throw std::string("Type mismatch in comparison");
+        }
+        switch (lhs.type) {
+            case TYPE_INT:
+                return lhs.int_val < rhs.int_val;
+            case TYPE_FLOAT:
+                return lhs.float_val < rhs.float_val;
+            case TYPE_STRING:
+                return lhs.str_val < rhs.str_val;
+            case TYPE_BIGINT:
+                return lhs.bigint_val < rhs.bigint_val;
+            default:
+                throw std::string("Invalid value type");
+=======
         if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
             return lhs.int_val < rhs.float_val;
         }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
@@ -178,10 +222,25 @@ private:
             return lhs.str_val < rhs.str_val;
         }else{
             throw std::string("Invalid value type");
+>>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
         }
     }
 
     static bool isGreaterThan(const Value& lhs, const Value& rhs) {
+<<<<<<< HEAD
+        if (lhs.type != rhs.type) {
+            throw std::string("Type mismatch in comparison");
+        }
+        switch (lhs.type) {
+            case TYPE_INT:
+                return lhs.int_val > rhs.int_val;
+            case TYPE_FLOAT:
+                return lhs.float_val > rhs.float_val;
+            case TYPE_STRING:
+                return lhs.bigint_val > rhs.bigint_val;
+            default:
+                throw std::string("Invalid value type");
+=======
         if((lhs.type==TYPE_INT)&&(rhs.type==TYPE_FLOAT)){
             return lhs.int_val > rhs.float_val;
         }else if((lhs.type==TYPE_FLOAT)&&(rhs.type==TYPE_INT)){
@@ -194,6 +253,7 @@ private:
             return lhs.str_val > rhs.str_val;
         }else{
             throw std::string("Invalid value type");
+>>>>>>> 0125983c1267d92ac2ea2bf73d5310f8fe8640ef
         }
     }
 
