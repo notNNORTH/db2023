@@ -43,47 +43,64 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
 
     }
 
+    const std::vector<ColMeta> &cols() const override {
+    // 提供适当的实现，返回具体的 ColMeta 对象或者 std::vector<ColMeta>
+        return cols_;
+    }
+
     void beginTuple() override {
         left_->beginTuple();
         right_->beginTuple();
+        isend = (left_->is_end() && right_->is_end());  // 支持与空表做join
     }
 
     void nextTuple() override {
         //对每个左节点遍历右节点,
-        if(!right_ -> is_end()){
+        if (! right_->is_end()){   // 右边不是最后一个节点，直接取下一个即可
             right_ -> nextTuple();
+
+            // 判断当前是不是最后一个
+            if (right_->is_end()){
+                right_->beginTuple();
+                left_->nextTuple();
+            }
         }
-        else if(left_ -> is_end()){
-            left_ -> nextTuple();
-            right_ -> beginTuple();            
-        }
-        else{
-            isend = true ;
+        if(left_ -> is_end()){
+            isend = true;           
         }
     }
 
-    
-
     std::unique_ptr<RmRecord> Next() override {
-        if(isend) return nullptr;
-        //将左右节点组合，不知道要不要进行条件判断,待改进————————————————————————————————
-        else{
-            std::unique_ptr<RmRecord> Left = left_->Next ();
-            std::unique_ptr<RmRecord> Right = left_->Next ();
-            char* Data;
-            char* LeftData = Left -> data;
-            char* RightData = Right ->data;
-            char *DataSec = Data + Left -> size;
-            memcpy(Data , LeftData , Left -> size);            
-            memcpy(DataSec , RightData , Right -> size);
-            return std::unique_ptr<RmRecord>(new RmRecord(len_ , Data));
+
+        if (isend){return nullptr;}     // 虽然这句话不可能执行
+            
+        std::unique_ptr<RmRecord> left_record = left_->Next();
+        std::unique_ptr<RmRecord> right_record = right_->Next();
+
+        if (left_record == nullptr || right_record == nullptr){
+            return nullptr;
         }
+        // 构造新的记录并返回
         
-        
-        return nullptr;
+
+        char* left_data = left_record->data;
+        char* right_data = right_record->data;
+        // 将左右记录的数据拷贝到新的记录中
+
+        char* data = new char[len_];
+
+        memcpy(data, left_data, left_->tupleLen());
+        memcpy(data + left_->tupleLen(), right_data, right_->tupleLen());
+        std::unique_ptr<RmRecord> result_record = std::make_unique<RmRecord>(len_, data);
+
+        return result_record;
     }
 
     Rid &rid() override { return _abstract_rid; }
+
+    bool is_end() const override{
+        return isend;
+    }
     
     //自己加的
 

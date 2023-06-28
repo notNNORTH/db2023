@@ -173,6 +173,8 @@ class SeqScanExecutor : public AbstractExecutor {
         return cols_;
     }
 
+    size_t tupleLen() const override{ return len_; };
+
     void beginTuple() override {
         // 初始化执行器的状态，准备开始遍历记录
         // 这个函数在第一次调用 Next() 前会被自动调用
