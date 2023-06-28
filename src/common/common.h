@@ -35,6 +35,7 @@ struct Value {
         float float_val;  // float value
     };
     std::string str_val;  // string value
+    BigInt bigint_val;
 
     std::shared_ptr<RmRecord> raw;  // raw record buffer
 
@@ -53,6 +54,11 @@ struct Value {
         str_val = std::move(str_val_);
     }
 
+    void set_bigint(BigInt bigint_val_) {
+        type = TYPE_BIGINT;
+        bigint_val = bigint_val_;
+    }
+
     void init_raw(int len) {
         assert(raw == nullptr);
         raw = std::make_shared<RmRecord>(len);
@@ -68,6 +74,11 @@ struct Value {
             }
             memset(raw->data, 0, len);
             memcpy(raw->data, str_val.c_str(), str_val.size());
+        } else if (type == TYPE_BIGINT){
+            //8byte
+            assert(len == 2*sizeof(int));
+            memset(raw->data, 0, len);
+            memcpy(raw->data, &bigint_val, len);
         }
     }
 };
