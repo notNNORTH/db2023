@@ -190,7 +190,7 @@ type:
     }
     |   FLOAT
     {
-        $$ = std::make_shared<TypeLen>(SV_TYPE_FLOAT, sizeof(float));
+        $$ = std::make_shared<TypeLen>(SV_TYPE_FLOAT, sizeof(double));
     }
     ;
 
