@@ -26,6 +26,11 @@ class InsertExecutor : public AbstractExecutor {
 
    public:
     InsertExecutor(SmManager *sm_manager, const std::string &tab_name, std::vector<Value> values, Context *context) {
+        for(auto value:values){
+            if (value.type == TYPE_BIGINT ){
+                if(value.bigint_val.flag == 1) throw BigIntoverflow();
+            }
+        }
         sm_manager_ = sm_manager;
         tab_ = sm_manager_->db_.get_table(tab_name);
         values_ = values;

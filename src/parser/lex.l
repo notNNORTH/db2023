@@ -15,6 +15,9 @@
 #include "yacc.tab.h"
 #include <iostream>
 
+//rz dev
+#include <cstring>
+#include "errors.h"
 // automatically update location
 #define YY_USER_ACTION \
     yylloc->first_line = yylloc->last_line; \
@@ -99,9 +102,29 @@ value_bigint {sign}?{digit}+
     return IDENTIFIER;
 }
     /* literals */
+    /* rz-dev */
 {value_int} {
-    yylval->sv_int = atoi(yytext);
-    return VALUE_INT;
+    char *p = yytext;
+    int l = std::strlen(yytext);
+    
+    BigInt *BI = new BigInt(yytext);
+    if(p[0]== '-'){
+        if(l>=20){
+            BI -> flag=1;
+        }
+    }else{
+        if(l>=19){
+            BI -> flag=1;
+        }
+    }
+    if(BI->high == 0){
+        yylval->sv_int = atoi(yytext);
+        delete BI;
+        return VALUE_INT;
+    }
+    yylval->sv_bigint = *(BI);
+    return VALUE_BIGINT;
+    
 }
 {value_float} {
     yylval->sv_float = atof(yytext);

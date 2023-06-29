@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 //添加
 #include <string.h>
+#include "errors.h"
 
 // 此处重载了<<操作符，在ColMeta中进行了调用
 template<typename T, typename = typename std::enable_if<std::is_enum<T>::value, T>::type>
@@ -74,6 +75,7 @@ public:
     //由两个数10进制数拼成高位10位有符号，低位9位无符号
     int high;
     int low;
+    bool flag = 0;
     BigInt() {
         high = 0;
         low = 0;
