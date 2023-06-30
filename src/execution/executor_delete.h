@@ -85,7 +85,11 @@ class DeleteExecutor : public AbstractExecutor {
             bool do_update = true;
             for (Condition &cond : conds_){
                 ConditionEvaluator Cal;
-                do_update = Cal.evaluate(cond, cols_check_, rec);
+                bool tmp = Cal.evaluate(cond, cols_check_, rec);
+                if (!tmp){
+                    do_update = false;
+                    break;
+                }
             }
             // if(!do_update){continue;}
 

@@ -114,7 +114,9 @@ class UpdateExecutor : public AbstractExecutor {
                 // 判断插入值和属性类型是否一致
                 auto& col = it[i];
                 auto& val = const_cast<Value&>(set_clause.rhs);
-                if (col.type == TYPE_FLOAT && val.type == TYPE_INT || col.type == TYPE_INT && val.type == TYPE_FLOAT){}
+                if (col.type == TYPE_FLOAT && val.type == TYPE_INT || col.type == TYPE_INT && val.type == TYPE_FLOAT){
+                    val.type = col.type;
+                }
                 else if (col.type != val.type) {
                     throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
                 }

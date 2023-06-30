@@ -97,7 +97,7 @@ public:
     }
 
     bool is_end() const override{
-        return prev_->_abstract_rid.slot_no==-1;
+        return prev_->is_end();
     }
 
     const std::vector<ColMeta> &cols() const override {
