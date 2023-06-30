@@ -190,8 +190,19 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
         ColType lhs_type = lhs_col->type;
         ColType rhs_type;
         if (cond.is_rhs_val) {
-            cond.rhs_val.init_raw(lhs_col->len);
             rhs_type = cond.rhs_val.type;
+            switch (rhs_type)
+            {
+            case TYPE_FLOAT:
+                cond.rhs_val.init_raw(8);
+                break;
+            case TYPE_INT:
+                cond.rhs_val.init_raw(4);
+                break;
+            default:
+                cond.rhs_val.init_raw(lhs_col->len);
+                break;
+            }
         } else {
             TabMeta &rhs_tab = sm_manager_->db_.get_table(cond.rhs_col.tab_name);
             auto rhs_col = rhs_tab.get_col(cond.rhs_col.col_name);
