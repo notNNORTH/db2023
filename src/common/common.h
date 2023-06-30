@@ -76,7 +76,7 @@ struct Value {
             memcpy(raw->data, str_val.c_str(), str_val.size());
         } else if (type == TYPE_BIGINT){
             //8byte
-            assert(len == 2*sizeof(int));
+            assert(len == sizeof(BigInt));
             memset(raw->data, 0, len);
             memcpy(raw->data, &bigint_val, len);
         }

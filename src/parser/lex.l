@@ -106,30 +106,53 @@ value_bigint {sign}?{digit}+
 {value_int} {
     char *p = yytext; 
     //判断是否为int或bigint
+    int l = std::strlen(yytext);
+    
     if(p[0]== '-'){
-        std::string valuestr(p + 1);
-        if(valuestr <= "2147483648"){           
-            yylval->sv_int = atoi(yytext);
-            return VALUE_INT;
+        if(l <= 10) {
+           yylval->sv_int = atoi(yytext);
+            return VALUE_INT; 
+        }
+        else if(l == 11){
+            std::string valuestr(p + 1);
+            if(valuestr <= "2147483648"){           
+                yylval->sv_int = atoi(yytext);
+                return VALUE_INT;
+            }
         }
     }else{
-        std::string valuestr(p);
-        if(valuestr <= "2147483647"){
-            yylval->sv_int = atoi(yytext);
-            return VALUE_INT;
+        if(l <= 9) {
+           yylval->sv_int = atoi(yytext);
+            return VALUE_INT; 
+        }else if(l == 10){
+            std::string valuestr(p);
+            if(valuestr <= "2147483647"){
+                yylval->sv_int = atoi(yytext);
+                return VALUE_INT;
+            }
         }
     }
 
     BigInt *BI = new BigInt(yytext);
     if(p[0]== '-'){
-        std::string valuestr(p + 1);
-        if(valuestr > "9223372036854775808"){           
+        if(l >= 20){
             BI -> flag=1;
         }
+        else if(l == 19){        
+            std::string valuestr(p + 1);
+            if(valuestr > "9223372036854775808"){           
+                BI -> flag=1;
+            }
+        }
     }else{
-        std::string valuestr(p);
-        if(valuestr > "9223372036854775807"){
+        if(l >= 19){
             BI -> flag=1;
+        }
+        else if(l == 18){
+            std::string valuestr(p);
+            if(valuestr > "9223372036854775807"){
+                BI -> flag=1;
+            }
         }
     }
     

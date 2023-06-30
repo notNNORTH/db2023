@@ -82,7 +82,9 @@ public:
         value = std::atoll(bit);
     }
     //操作符重载
-
+    BigInt(int val) {
+        value = val;
+    }
     //输出
     friend std::ostream& operator<<(std::ostream& os, const BigInt& num) {
         os << num.value;

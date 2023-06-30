@@ -49,7 +49,13 @@ class InsertExecutor : public AbstractExecutor {
             auto &col = tab_.cols[i];
             auto &val = values_[i];
             if (col.type != val.type) {     // 检查插入数据与该位置属性是否一致
-                throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
+                if(col.type == TYPE_BIGINT && val.type == TYPE_INT){
+                    BigInt bigint(val.int_val);
+                    val.set_bigint(bigint);
+                }else{
+                    throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
+                }
+                
             }
             val.init_raw(col.len);
             memcpy(rec.data + col.offset, val.raw->data, col.len);
