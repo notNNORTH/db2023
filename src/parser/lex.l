@@ -103,62 +103,40 @@ value_bigint {sign}?{digit}+
 }
     /* literals */
     /* rz-dev */
-{value_int} {
-    char *p = yytext; 
-    //判断是否为int或bigint
-    int l = std::strlen(yytext);
-    
-    if(p[0]== '-'){
-        if(l <= 10) {
-           yylval->sv_int = atoi(yytext);
-            return VALUE_INT; 
-        }
-        else if(l == 11){
-            std::string valuestr(p + 1);
-            if(valuestr <= "2147483648"){           
-                yylval->sv_int = atoi(yytext);
-                return VALUE_INT;
-            }
-        }
-    }else{
-        if(l <= 9) {
-           yylval->sv_int = atoi(yytext);
-            return VALUE_INT; 
-        }else if(l == 10){
-            std::string valuestr(p);
-            if(valuestr <= "2147483647"){
-                yylval->sv_int = atoi(yytext);
-                return VALUE_INT;
-            }
-        }
+{value_int} {       // by 星穹铁道高手
+
+    std::string str_value(yytext);  // 将输入字符转为string
+
+    int int_value = atoi(yytext);   // 将输入字符转为int
+
+    long long bigint_value = std::atoll(yytext);   // 将输入字符转为long long
+
+
+
+    if (std::to_string(int_value) == str_value){    // 转换前后字符相等
+
+        yylval->sv_int = atoi(yytext);
+
+        return VALUE_INT;
+
     }
 
-    BigInt *BI = new BigInt(yytext);
-    if(p[0]== '-'){
-        if(l >= 20){
-            BI -> flag=1;
+    else{
+
+        BigInt *bigint = new BigInt(yytext);
+
+        if (std::to_string(bigint->value) != str_value){
+
+            bigint->flag = true;
+
         }
-        else if(l == 19){        
-            std::string valuestr(p + 1);
-            if(valuestr > "9223372036854775808"){           
-                BI -> flag=1;
-            }
-        }
-    }else{
-        if(l >= 19){
-            BI -> flag=1;
-        }
-        else if(l == 18){
-            std::string valuestr(p);
-            if(valuestr > "9223372036854775807"){
-                BI -> flag=1;
-            }
-        }
+
+        yylval->sv_bigint = *bigint;
+
+        return VALUE_BIGINT;
+
     }
-    
-    yylval->sv_bigint = *(BI);
-    return VALUE_BIGINT;
-    
+
 }
 {value_float} {
     yylval->sv_float = atof(yytext);

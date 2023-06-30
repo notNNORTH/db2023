@@ -52,7 +52,11 @@ class InsertExecutor : public AbstractExecutor {
                 if(col.type == TYPE_BIGINT && val.type == TYPE_INT){
                     BigInt bigint(val.int_val);
                     val.set_bigint(bigint);
-                }else{
+                }else if(col.type == TYPE_INT && val.type == TYPE_BIGINT){
+                    int value = val.bigint_val.value;
+                    val.set_int(value);
+                }
+                else{
                     throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
                 }
                 

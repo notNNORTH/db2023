@@ -104,7 +104,16 @@ public:
         Value invalid=Value{};
         Value& lhsValue = getOperandValue(condition.lhs_col, cols, record, invalid);
         Value& rhsValue = getOperandValue(condition.rhs_col, cols, record, condition.rhs_val);
-
+        //rz-dev
+        if(lhsValue.type != rhsValue.type){
+            if(lhsValue.type == TYPE_BIGINT && rhsValue.type == TYPE_INT){
+                    BigInt bigint(rhsValue.int_val);
+                    rhsValue.set_bigint(bigint);
+                }else if(lhsValue.type == TYPE_INT && rhsValue.type == TYPE_BIGINT){
+                    BigInt bigint(rhsValue.int_val);
+                    rhsValue.set_bigint(bigint);
+                }
+        }
         switch (condition.op) {
             case OP_EQ:
                 return isEqual(lhsValue, rhsValue);
@@ -170,10 +179,16 @@ private:
                         value.set_float(float_val);
                         value.init_raw(meta.len);
                         return value;
-                    }else if(TYPE_STRING){
+                    }else if(type==TYPE_STRING){
                         char* charPointer3 = reinterpret_cast<char*>(record.data + meta.offset); 
                         std::string str(charPointer3, charPointer3+meta.len); 
                         value.set_str(str);
+                        value.init_raw(meta.len);
+                        return value;
+                    }else if(type==TYPE_BIGINT){
+                        char* charPointer4 = reinterpret_cast<char*>(record.data + meta.offset);  
+                        BigInt bigint_val = *reinterpret_cast<BigInt*>(charPointer4);
+                        value.set_bigint(bigint_val);
                         value.init_raw(meta.len);
                         return value;
                     }
@@ -194,6 +209,8 @@ private:
             return lhs.float_val == rhs.float_val;
         }else if((lhs.type==TYPE_STRING)&&(rhs.type==TYPE_STRING)){
             return lhs.str_val == rhs.str_val;
+        }else if((lhs.type==TYPE_BIGINT)&&(rhs.type==TYPE_BIGINT)){
+            return lhs.bigint_val == rhs.bigint_val;
         }else{
             throw std::string("Invalid value type");
         }
@@ -210,6 +227,8 @@ private:
             return lhs.float_val < rhs.float_val;
         }else if((lhs.type==TYPE_STRING)&&(rhs.type==TYPE_STRING)){
             return lhs.str_val < rhs.str_val;
+        }else if((lhs.type==TYPE_BIGINT)&&(rhs.type==TYPE_BIGINT)){
+            return lhs.bigint_val < rhs.bigint_val;
         }else{
             throw std::string("Invalid value type");
         }
@@ -226,6 +245,8 @@ private:
             return lhs.float_val > rhs.float_val;
         }else if((lhs.type==TYPE_STRING)&&(rhs.type==TYPE_STRING)){
             return lhs.str_val > rhs.str_val;
+        }else if((lhs.type==TYPE_BIGINT)&&(rhs.type==TYPE_BIGINT)){
+            return lhs.bigint_val > rhs.bigint_val;
         }else{
             throw std::string("Invalid value type");
         }
