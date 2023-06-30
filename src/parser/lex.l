@@ -104,24 +104,35 @@ value_bigint {sign}?{digit}+
     /* literals */
     /* rz-dev */
 {value_int} {
-    char *p = yytext;
-    int l = std::strlen(yytext);
-    
+    char *p = yytext; 
+    //判断是否为int或bigint
+    if(p[0]== '-'){
+        std::string valuestr(p + 1);
+        if(valuestr <= "2147483648"){           
+            yylval->sv_int = atoi(yytext);
+            return VALUE_INT;
+        }
+    }else{
+        std::string valuestr(p);
+        if(valuestr <= "2147483647"){
+            yylval->sv_int = atoi(yytext);
+            return VALUE_INT;
+        }
+    }
+
     BigInt *BI = new BigInt(yytext);
     if(p[0]== '-'){
-        if(l>=20){
+        std::string valuestr(p + 1);
+        if(valuestr > "9223372036854775808"){           
             BI -> flag=1;
         }
     }else{
-        if(l>=19){
+        std::string valuestr(p);
+        if(valuestr > "9223372036854775807"){
             BI -> flag=1;
         }
     }
-    if(BI->high == 0){
-        yylval->sv_int = atoi(yytext);
-        delete BI;
-        return VALUE_INT;
-    }
+    
     yylval->sv_bigint = *(BI);
     return VALUE_BIGINT;
     

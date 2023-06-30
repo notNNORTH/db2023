@@ -44,7 +44,7 @@ class InsertExecutor : public AbstractExecutor {
 
     std::unique_ptr<RmRecord> Next() override {
         // Make record buffer
-        RmRecord rec(fh_->get_file_hdr().record_size);//也就是说make buffer有问题，也就是说fh有问题
+        RmRecord rec(fh_->get_file_hdr().record_size);
         for (size_t i = 0; i < values_.size(); i++) {
             auto &col = tab_.cols[i];
             auto &val = values_[i];
@@ -52,7 +52,7 @@ class InsertExecutor : public AbstractExecutor {
                 throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
             }
             val.init_raw(col.len);
-            memcpy(rec.data + col.offset, val.raw->data, col.len);//可能问题出在这,记录长度只有四个字节
+            memcpy(rec.data + col.offset, val.raw->data, col.len);
         }
         // Insert into record file
         rid_ = fh_->insert_record(rec.data, context_);

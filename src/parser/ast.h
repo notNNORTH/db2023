@@ -239,7 +239,7 @@ struct SemValue {
     double sv_float;
     
     std::string sv_str;
-    BigInt sv_bigint;
+    BigInt sv_bigint;       // by 星穹铁道高手
 
     OrderByDir sv_orderby_dir;
     std::vector<std::string> sv_strs;
