@@ -163,7 +163,7 @@ void QlManager::select_from(std::unique_ptr<AbstractExecutor> executorTreeRoot, 
             if (col.type == TYPE_INT) {
                 col_str = std::to_string(*(int *)rec_buf);
             } else if (col.type == TYPE_FLOAT) {
-                col_str = std::to_string(*(float *)rec_buf);
+                col_str = std::to_string(*(double *)rec_buf);
             } else if (col.type == TYPE_STRING) {
                 col_str = std::string((char *)rec_buf, col.len);
                 col_str.resize(strlen(col_str.c_str()));

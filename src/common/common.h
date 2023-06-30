@@ -32,7 +32,7 @@ struct Value {
     ColType type;  // type of value
     union {
         int int_val;      // int value
-        float float_val;  // float value
+        double float_val;  // float value  --by 星穹铁道高手
     };
     std::string str_val;  // string value
     BigInt bigint_val;
@@ -44,7 +44,7 @@ struct Value {
         int_val = int_val_;
     }
 
-    void set_float(float float_val_) {
+    void set_float(double float_val_) {
         type = TYPE_FLOAT;
         float_val = float_val_;
     }
@@ -66,8 +66,8 @@ struct Value {
             assert(len == sizeof(int));
             *(int *)(raw->data) = int_val;
         } else if (type == TYPE_FLOAT) {
-            assert(len == sizeof(float));
-            *(float *)(raw->data) = float_val;
+            assert(len == sizeof(double));
+            *(double *)(raw->data) = float_val;
         } else if (type == TYPE_STRING) {
             if (len < (int)str_val.size()) {
                 throw StringOverflowError();
@@ -122,6 +122,29 @@ public:
                 throw std::string("Invalid comparison operator");
         }
     }
+    bool evaluate(Condition& condition, std::vector<ColMeta>& cols, RmRecord& record_l, RmRecord& record_r){
+        Value invalid=Value{};
+        Value& lhsValue = getOperandValue(condition.lhs_col, cols, record_l, invalid);
+        Value& rhsValue = getOperandValue(condition.rhs_col, cols, record_r, condition.rhs_val);
+
+        switch (condition.op) {
+            case OP_EQ:
+                return isEqual(lhsValue, rhsValue);
+            case OP_NE:
+                return !isEqual(lhsValue, rhsValue);
+            case OP_LT:
+                return isLessThan(lhsValue, rhsValue);
+            case OP_GT:
+                return isGreaterThan(lhsValue, rhsValue);
+            case OP_LE:
+                return isLessThanOrEqual(lhsValue, rhsValue);
+            case OP_GE:
+                return isGreaterThanOrEqual(lhsValue, rhsValue);
+            default:
+                throw std::string("Invalid comparison operator");
+        }
+        
+    }
 
 private:
     Value& getOperandValue(TabCol& col, std::vector<ColMeta>& cols, RmRecord& record, Value& value) {
@@ -143,7 +166,7 @@ private:
                         return value;
                     }else if(type==TYPE_FLOAT){
                         char* charPointer2 = reinterpret_cast<char*>(record.data + meta.offset);  
-                        float float_val = *reinterpret_cast<float*>(charPointer2);
+                        double float_val = *reinterpret_cast<double*>(charPointer2);
                         value.set_float(float_val);
                         value.init_raw(meta.len);
                         return value;

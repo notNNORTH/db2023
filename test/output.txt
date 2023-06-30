@@ -241,3 +241,140 @@ failure
 | name | id | score |
 | CCCC | 3 | 3.000000 |
 | DDDD | 4 | 4.000000 |
+| Tables |
+| grade |
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+failure
+failure
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| id | t_name | d_name | id |
+| id | t_name |
+| 1 | aaa |
+| 2 | baa |
+| 3 | bba |
+| d_name | id |
+| 12345 | 1 |
+| 23456 | 2 |
+| id | t_name | d_name | id |
+| id | t_name | d_name | id |
+failure
+failure
+failure
+failure
+| id | t_name | d_name | id |
+| 1 | aaa |  | 0 |
+| 2 | baa |  | 0 |
+| 3 | bba |  | 0 |
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| Data | 2 | 95.000000 |
+| Calc | 2 | 92.000000 |
+| Calc | 1 | 88.500000 |
+| score | name | id |
+| 90.500000 | Data | 1 |
+| 95.000000 | Data | 2 |
+| 92.000000 | Calc | 2 |
+| id |
+| 1 |
+| 2 |
+| name |
+| Data |
+| Calc |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| Data | 2 | 95.000000 |
+| Calc | 2 | 92.000000 |
+| Calc | 1 | 88.500000 |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| Data | 2 | 95.000000 |
+| Calc | 2 | 99.000000 |
+| Calc | 1 | 99.000000 |
+| name | id | score |
+| test | 1 | 90.500000 |
+| test | 2 | 95.000000 |
+| test | 2 | 99.000000 |
+| test | 1 | 99.000000 |
+| name | id | score |
+| test | -1 | 0.000000 |
+| test | -1 | 0.000000 |
+| test | -1 | 0.000000 |
+| test | -1 | 0.000000 |
+| name | id | score |
+| Data | 1 | 90.500000 |
+| name | id | score |
+failure
+failure
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| 1 | aaa | 23456 | 2 |
+| 2 | baa | 23456 | 2 |
+| 3 | bba | 23456 | 2 |
+| id | t_name | d_name |
+| 1 | aaa | 12345 |
+| 1 | aaa | 23456 |
+| 2 | baa | 12345 |
+| 2 | baa | 23456 |
+| 3 | bba | 12345 |
+| 3 | bba | 23456 |
+| id | t_name | d_name |
+| 1 | aaa | 12345 |
+| 1 | aaa | 23456 |
+| 2 | baa | 12345 |
+| 2 | baa | 23456 |
+| 3 | bba | 12345 |
+| 3 | bba | 23456 |
+| id | t_name | d_name |
+| 1 | aaa | 12345 |
+| 1 | aaa | 23456 |
+| 2 | baa | 12345 |
+| 2 | baa | 23456 |
+| 3 | bba | 12345 |
+| 3 | bba | 23456 |
+| id |
+| 1 |
+| 2 |
+| 3 |
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| 1 | aaa | 23456 | 2 |
+| 2 | baa | 23456 | 2 |
+| 3 | bba | 23456 | 2 |
+| id | t_name | d_name |
+| id | t_name | d_name |
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| 1 | aaa | 23456 | 2 |
+| 2 | baa | 23456 | 2 |
+| 3 | bba | 23456 | 2 |
+| id | t_name | d_name |
+| id | t_name | d_name | id |
+| 1 | aaa | 12345 | 1 |
+| 2 | baa | 12345 | 1 |
+| 3 | bba | 12345 | 1 |
+| 1 | aaa | 23456 | 2 |
+| 2 | baa | 23456 | 2 |
+| 3 | bba | 23456 | 2 |
+| id | t_name | d_name |
+| 1 | aaa | 12345 |
+| 2 | baa | 23456 |
