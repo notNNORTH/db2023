@@ -289,7 +289,57 @@ void SmManager::drop_table(const std::string& tab_name, Context* context) {
  * @param {Context*} context
  */
 void SmManager::create_index(const std::string& tab_name, const std::vector<std::string>& col_names, Context* context) {
-    
+    auto idx_file_exist=ix_manager_->exists(tab_name,col_names);
+    if(!idx_file_exist){
+        //指定表里所有的列的meta值,指定的idx的数量
+        auto& tab_col_meta=db_.tabs_[tab_name].cols;
+        auto idx_num=col_names.size();
+        auto tab_col_meta_size=tab_col_meta.size();
+
+        //存指定idx列的meta值
+        std::vector<ColMeta> idx_col_meta;
+
+        //选择出idx对应的列的meta值
+
+        int col_tot_len = 0;
+
+        for(int i=0;i<idx_num;i++){
+
+            bool found=false;
+            auto idx_col_temp=col_names[i];
+
+            for(int j=0;j<tab_col_meta_size;j++){
+
+                auto& col_meta_ref=tab_col_meta[j];
+
+                if(idx_col_temp==col_meta_ref.name){
+                    found=true;
+                    col_meta_ref.index=true;
+                    idx_col_meta.push_back(col_meta_ref);
+                    col_tot_len=col_tot_len+col_meta_ref.len;
+                }
+
+                if(found==true){
+                    break;
+                }
+
+            }
+
+            if(found==false){
+                throw IndexNotFoundError(tab_name,col_names);
+            }
+
+        }
+
+        //创建.idx文件
+        ix_manager_->create_index(tab_name,idx_col_meta);
+
+        //tabmeta.IndexMeta vector
+        IndexMeta temp=IndexMeta{tab_name,col_tot_len,idx_num,idx_col_meta};
+        db_.tabs_[tab_name].indexes.push_back(temp);
+
+    }
+
 }
 
 /**
@@ -299,7 +349,63 @@ void SmManager::create_index(const std::string& tab_name, const std::vector<std:
  * @param {Context*} context
  */
 void SmManager::drop_index(const std::string& tab_name, const std::vector<std::string>& col_names, Context* context) {
-    
+    auto idx_file_exist=ix_manager_->exists(tab_name,col_names);
+    if(!idx_file_exist){
+        throw IndexNotFoundError(tab_name,col_names);
+    }
+    else{
+        ix_manager_->destroy_index(tab_name,col_names);
+        //修改indexes!!!!!!!
+        auto& del_indexes=db_.tabs_[tab_name].indexes;
+        //对表内的每一个index，进行对比
+        for(int i=0;i<del_indexes.size();i++){
+
+            //对colnames中的每一个列名，在当前indexmeta的cols中查找，只有全部都有且个数相同，才是对应的索引
+            bool is_this_index=true;
+            auto& index_it=del_indexes[i];
+            int count_find_col=0;
+
+            if((index_it.col_num==col_names.size())){
+                
+                for(int j=0;j<col_names.size();j++){
+                    bool find_this_col=false;
+                    auto col_name=col_names[j];
+                    for(int it=0;it<index_it.cols.size();it++){
+                        if(index_it.cols[it].name==col_name){
+                            find_this_col=true;
+                            break;
+                        }
+                    }
+                    //只要有一个属性找不到就说明不是这个index
+                    if(!find_this_col){
+                        is_this_index=false;
+                        break;
+                    }
+                    count_find_col++;
+                }
+
+            }
+
+            if(is_this_index&&count_find_col==col_names.size()){
+                auto it=del_indexes.begin()+i;
+                del_indexes.erase(it);
+                break;
+            }
+
+        }
+
+        //修改colmeta!!!!!!!
+        auto& tab_col_meta=db_.tabs_[tab_name].cols;
+
+        for(int j=0;j<col_names.size();j++){
+            for(int k=0;k<tab_col_meta.size();k++){
+                if(col_names[j]==tab_col_meta[k].name){
+                    tab_col_meta[k].index=false;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /**

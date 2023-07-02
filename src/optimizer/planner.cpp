@@ -370,7 +370,10 @@ std::shared_ptr<Plan> Planner::do_planner(std::shared_ptr<Query> query, Context 
         std::shared_ptr<Plan> projection = generate_select_plan(std::move(query), context);
         plannerRoot = std::make_shared<DMLPlan>(T_select, projection, std::string(), std::vector<Value>(),
                                                     std::vector<Condition>(), std::vector<SetClause>());
-    } else {
+    } else if(auto x = std::dynamic_pointer_cast<ast::ShowIndexStmt>(query->parse)){
+        plannerRoot = std::make_shared<DMLPlan>(T_ShowIndex, std::shared_ptr<Plan>(),  x->tab_name,  
+                                                    query->values, std::vector<Condition>(), std::vector<SetClause>());
+    }else {
         throw InternalError("Unexpected AST root");
     }
     return plannerRoot;

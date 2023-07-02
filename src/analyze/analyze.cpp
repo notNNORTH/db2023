@@ -106,7 +106,13 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
             query->values.push_back(convert_sv_value(sv_val));
         }
 
-    } else {
+    }else if(auto x = std::dynamic_pointer_cast<ast::ShowIndexStmt>(parse)){
+        query->tables.push_back(x->tab_name);
+        auto tab = query->tables.back();
+        if (!sm_manager_->db_.is_table(tab)){
+            throw TableNotFoundError(tab);
+        }
+    }else {
         // do nothing
     }
     query->parse = std::move(parse);
