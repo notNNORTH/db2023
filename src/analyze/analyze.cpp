@@ -202,6 +202,9 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
             case TYPE_BIGINT:
                 cond.rhs_val.init_raw(sizeof(BigInt));
                 break;
+            case TYPE_DATETIME:
+                cond.rhs_val.init_raw(sizeof(DateTime));
+                break;
             default:
                 cond.rhs_val.init_raw(lhs_col->len);
                 break;
@@ -211,10 +214,10 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
             auto rhs_col = rhs_tab.get_col(cond.rhs_col.col_name);
             rhs_type = rhs_col->type;
         }
-        if ((lhs_type == TYPE_INT && rhs_type == TYPE_FLOAT) || (lhs_type == TYPE_FLOAT && rhs_type == TYPE_INT)||(lhs_type == TYPE_BIGINT && rhs_type == TYPE_INT)||(lhs_type == TYPE_INT && rhs_type == TYPE_BIGINT)){
-            continue;
-        }
-        if (lhs_type != rhs_type) {
+        if ((lhs_type == TYPE_INT && rhs_type == TYPE_FLOAT) || (lhs_type == TYPE_FLOAT && rhs_type == TYPE_INT)){}
+        else if ((lhs_type == TYPE_BIGINT && rhs_type == TYPE_INT) || (lhs_type == TYPE_INT && rhs_type == TYPE_BIGINT)){}
+        else if (lhs_type == TYPE_STRING && rhs_type == TYPE_DATETIME){}
+        else if (lhs_type != rhs_type) {
             throw IncompatibleTypeError(coltype2str(lhs_type), coltype2str(rhs_type));
         }
     }
@@ -231,6 +234,8 @@ Value Analyze::convert_sv_value(const std::shared_ptr<ast::Value> &sv_val) {
         val.set_str(str_lit->val);
     } else if (auto bigint_lit = std::dynamic_pointer_cast<ast::BigIntLit>(sv_val)) {
         val.set_bigint(bigint_lit->val);
+    } else if (auto datetime_lit = std::dynamic_pointer_cast<ast::DateTimeLit>(sv_val)) {
+        val.set_datetime(datetime_lit->val);
     }else {
         throw InternalError("Unexpected sv value type");
     }
@@ -245,3 +250,4 @@ CompOp Analyze::convert_sv_comp_op(ast::SvCompOp op) {
     };
     return m.at(op);
 }
+

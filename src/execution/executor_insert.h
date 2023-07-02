@@ -30,6 +30,9 @@ class InsertExecutor : public AbstractExecutor {
             if (value.type == TYPE_BIGINT ){
                 if(value.bigint_val.flag == 1) throw BigIntoverflow();
             }
+            if (value.type == TYPE_DATETIME and value.datetime_val.flag == false){  // 如果是DateTime且该类型不合法
+                throw DateTimeError();
+            }
         }
         sm_manager_ = sm_manager;
         tab_ = sm_manager_->db_.get_table(tab_name);
@@ -55,8 +58,10 @@ class InsertExecutor : public AbstractExecutor {
                 }else if(col.type == TYPE_INT && val.type == TYPE_BIGINT){
                     int value = val.bigint_val.value;
                     val.set_int(value);
-                }
-                else{
+                }else if(col.type == TYPE_STRING && val.type == TYPE_DATETIME){
+                    std::string str_val = val.datetime_val.get_datetime();
+                    val.set_str(str_val);
+                }else{
                     throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
                 }
                 

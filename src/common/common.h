@@ -36,6 +36,7 @@ struct Value {
     };
     std::string str_val;  // string value
     BigInt bigint_val;
+    DateTime datetime_val;
 
     std::shared_ptr<RmRecord> raw;  // raw record buffer
 
@@ -58,6 +59,10 @@ struct Value {
         type = TYPE_BIGINT;
         bigint_val = bigint_val_;
     }
+    void set_datetime(DateTime datetime_val_) {
+        type = TYPE_DATETIME;
+        datetime_val = datetime_val_;
+    }
 
     void init_raw(int len) {
         assert(raw == nullptr);
@@ -79,6 +84,11 @@ struct Value {
             assert(len == sizeof(BigInt));
             memset(raw->data, 0, len);
             memcpy(raw->data, &bigint_val, len);
+        }else if (type == TYPE_DATETIME){
+            //8byte
+            assert(len == sizeof(DateTime));
+            memset(raw->data, 0, len);
+            memcpy(raw->data, &datetime_val, len);
         }
     }
 };
@@ -104,15 +114,18 @@ public:
         Value invalid=Value{};
         Value& lhsValue = getOperandValue(condition.lhs_col, cols, record, invalid);
         Value& rhsValue = getOperandValue(condition.rhs_col, cols, record, condition.rhs_val);
-        //rz-dev
+
         if(lhsValue.type != rhsValue.type){
             if(lhsValue.type == TYPE_BIGINT && rhsValue.type == TYPE_INT){
-                    BigInt bigint(rhsValue.int_val);
-                    rhsValue.set_bigint(bigint);
-                }else if(lhsValue.type == TYPE_INT && rhsValue.type == TYPE_BIGINT){
-                    BigInt bigint(rhsValue.int_val);
-                    rhsValue.set_bigint(bigint);
-                }
+                BigInt bigint(rhsValue.int_val);
+                rhsValue.set_bigint(bigint);
+            }else if(lhsValue.type == TYPE_INT && rhsValue.type == TYPE_BIGINT){
+                BigInt bigint(rhsValue.int_val);
+                rhsValue.set_bigint(bigint);
+            }else if(lhsValue.type == TYPE_STRING && rhsValue.type == TYPE_DATETIME){
+                std::string str = rhsValue.datetime_val.get_datetime();
+                rhsValue.set_str(str);
+            }
         }
         switch (condition.op) {
             case OP_EQ:
@@ -135,7 +148,16 @@ public:
         Value invalid=Value{};
         Value& lhsValue = getOperandValue(condition.lhs_col, cols, record_l, invalid);
         Value& rhsValue = getOperandValue(condition.rhs_col, cols, record_r, condition.rhs_val);
-
+        //rz-dev
+        if(lhsValue.type != rhsValue.type){
+            if(lhsValue.type == TYPE_BIGINT && rhsValue.type == TYPE_INT){
+                    BigInt bigint(rhsValue.int_val);
+                    rhsValue.set_bigint(bigint);
+                }else if(lhsValue.type == TYPE_INT && rhsValue.type == TYPE_BIGINT){
+                    BigInt bigint(rhsValue.int_val);
+                    rhsValue.set_bigint(bigint);
+                }
+        }
         switch (condition.op) {
             case OP_EQ:
                 return isEqual(lhsValue, rhsValue);
@@ -191,6 +213,12 @@ private:
                         value.set_bigint(bigint_val);
                         value.init_raw(meta.len);
                         return value;
+                    }else if(type == TYPE_DATETIME){
+                        char* charPointer5 = reinterpret_cast<char*>(record.data + meta.offset);  
+                        DateTime datetime_val = *reinterpret_cast<DateTime*>(charPointer5);
+                        value.set_datetime(datetime_val);
+                        value.init_raw(meta.len);
+                        return value;
                     }
                 }
             }
@@ -211,6 +239,8 @@ private:
             return lhs.str_val == rhs.str_val;
         }else if((lhs.type==TYPE_BIGINT)&&(rhs.type==TYPE_BIGINT)){
             return lhs.bigint_val == rhs.bigint_val;
+        }else if((lhs.type==TYPE_DATETIME)&&(rhs.type==TYPE_DATETIME)){
+            return lhs.datetime_val == rhs.datetime_val;
         }else{
             throw std::string("Invalid value type");
         }
@@ -229,6 +259,8 @@ private:
             return lhs.str_val < rhs.str_val;
         }else if((lhs.type==TYPE_BIGINT)&&(rhs.type==TYPE_BIGINT)){
             return lhs.bigint_val < rhs.bigint_val;
+        }else if((lhs.type==TYPE_DATETIME)&&(rhs.type==TYPE_DATETIME)){
+            return lhs.datetime_val < rhs.datetime_val;
         }else{
             throw std::string("Invalid value type");
         }
@@ -247,6 +279,8 @@ private:
             return lhs.str_val > rhs.str_val;
         }else if((lhs.type==TYPE_BIGINT)&&(rhs.type==TYPE_BIGINT)){
             return lhs.bigint_val > rhs.bigint_val;
+        }else if((lhs.type==TYPE_DATETIME)&&(rhs.type==TYPE_DATETIME)){
+            return lhs.datetime_val > rhs.datetime_val;
         }else{
             throw std::string("Invalid value type");
         }

@@ -38,6 +38,9 @@ inline int ix_compare(const char *a, const char *b, ColType type, int col_len) {
                 BigInt bb(b1);
                 return (ba < bb) ? -1 : ((ba > bb) ? 1 : 0);
                 }
+        /*
+        这里要加case DATETIME
+        */
         default:
             throw InternalError("Unexpected data type");
     }

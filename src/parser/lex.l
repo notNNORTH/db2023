@@ -45,6 +45,8 @@ value_string '[^']*'
 single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
 
 value_bigint {sign}?{digit}+
+value_datetime  '{digit}+\-{digit}+\-{digit}+\ {digit}+\:{digit}+\:{digit}\+'
+
 %x STATE_COMMENT
 
 %%
@@ -91,6 +93,7 @@ value_bigint {sign}?{digit}+
 "ASC" { return ASC; }
 
 "BIGINT" { return BIGINT;}
+"DATETIME" { return DATETIME;}
     /* operators */
 ">=" { return GEQ; }
 "<=" { return LEQ; }
@@ -102,48 +105,58 @@ value_bigint {sign}?{digit}+
     return IDENTIFIER;
 }
     /* literals */
+{value_datetime} {
+    DateTime *datetime = new DateTime(yytext);
+    datetime->flag = datetime->isLegal();
+    yylval->sv_datetime = *datetime;
+    return VALUE_DATETIME;
+}
     /* rz-dev */
 {value_int} {       // by 星穹铁道高手
-
     std::string str_value(yytext);  // 将输入字符转为string
-
     int int_value = atoi(yytext);   // 将输入字符转为int
-
     long long bigint_value = std::atoll(yytext);   // 将输入字符转为long long
 
-
-
     if (std::to_string(int_value) == str_value){    // 转换前后字符相等
-
         yylval->sv_int = atoi(yytext);
-
         return VALUE_INT;
-
     }
-
     else{
-
         BigInt *bigint = new BigInt(yytext);
-
         if (std::to_string(bigint->value) != str_value){
-
             bigint->flag = true;
-
         }
-
         yylval->sv_bigint = *bigint;
-
         return VALUE_BIGINT;
-
     }
-
 }
 {value_float} {
     yylval->sv_float = atof(yytext);
     return VALUE_FLOAT;
 }
 {value_string} {
-    yylval->sv_str = std::string(yytext + 1, strlen(yytext) - 2);
+    char char1 = '-';
+    char char2 = ':';
+    char char3 = ' ';
+    std::string str = std::string(yytext + 1, strlen(yytext) - 2);
+    int count1 = 0;
+    int count2 = 0;
+    int count3 = 0;
+
+    for (char c : str) {
+        if (c == char1){ count1++; }
+        else if (c == char2) { count2++; }
+        else if (c == char3) { count3++; }
+    }
+
+    if (count1 == 2 && count2 == 2 && count3 == 1){
+        DateTime *datetime = new DateTime(str);
+        datetime->flag = datetime->isLegal();
+        yylval->sv_datetime = *datetime;
+        return VALUE_DATETIME;
+    }
+
+    yylval->sv_str = str;
     return VALUE_STRING;
 }
     /* rz-dev */
@@ -156,3 +169,4 @@ value_bigint {sign}?{digit}+
     /* unexpected char */
 . { std::cerr << "Lexer Error: unexpected character " << yytext[0] << std::endl; }
 %%
+

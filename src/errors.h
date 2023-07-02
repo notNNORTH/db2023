@@ -164,3 +164,7 @@ class BigIntoverflow : public RMDBError {
    public:
     BigIntoverflow(){_msg = "failure";}
 };
+class DateTimeError : public RMDBError {
+   public:
+    DateTimeError(){_msg = "failure";}
+};
