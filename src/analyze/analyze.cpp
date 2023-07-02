@@ -199,6 +199,9 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
             case TYPE_INT:
                 cond.rhs_val.init_raw(4);
                 break;
+            case TYPE_BIGINT:
+                cond.rhs_val.init_raw(sizeof(BigInt));
+                break;
             default:
                 cond.rhs_val.init_raw(lhs_col->len);
                 break;
@@ -208,7 +211,7 @@ void Analyze::check_clause(const std::vector<std::string> &tab_names, std::vecto
             auto rhs_col = rhs_tab.get_col(cond.rhs_col.col_name);
             rhs_type = rhs_col->type;
         }
-        if ((lhs_type == TYPE_INT && rhs_type == TYPE_FLOAT) || (lhs_type == TYPE_FLOAT && rhs_type == TYPE_INT)){
+        if ((lhs_type == TYPE_INT && rhs_type == TYPE_FLOAT) || (lhs_type == TYPE_FLOAT && rhs_type == TYPE_INT)||(lhs_type == TYPE_BIGINT && rhs_type == TYPE_INT)||(lhs_type == TYPE_INT && rhs_type == TYPE_BIGINT)){
             continue;
         }
         if (lhs_type != rhs_type) {
@@ -226,7 +229,9 @@ Value Analyze::convert_sv_value(const std::shared_ptr<ast::Value> &sv_val) {
         val.set_float(float_lit->val);
     } else if (auto str_lit = std::dynamic_pointer_cast<ast::StringLit>(sv_val)) {
         val.set_str(str_lit->val);
-    } else {
+    } else if (auto bigint_lit = std::dynamic_pointer_cast<ast::BigIntLit>(sv_val)) {
+        val.set_bigint(bigint_lit->val);
+    }else {
         throw InternalError("Unexpected sv value type");
     }
     return val;

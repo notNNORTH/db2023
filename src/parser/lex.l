@@ -15,6 +15,9 @@
 #include "yacc.tab.h"
 #include <iostream>
 
+//rz dev
+#include <cstring>
+#include "errors.h"
 // automatically update location
 #define YY_USER_ACTION \
     yylloc->first_line = yylloc->last_line; \
@@ -41,6 +44,7 @@ value_float {sign}?{digit}+\.({digit}+)?
 value_string '[^']*'
 single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
 
+value_bigint {sign}?{digit}+
 %x STATE_COMMENT
 
 %%
@@ -85,6 +89,8 @@ single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
 "ORDER" { return ORDER; }
 "BY" {  return BY;  }
 "ASC" { return ASC; }
+
+"BIGINT" { return BIGINT;}
     /* operators */
 ">=" { return GEQ; }
 "<=" { return LEQ; }
@@ -96,9 +102,41 @@ single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
     return IDENTIFIER;
 }
     /* literals */
-{value_int} {
-    yylval->sv_int = atoi(yytext);
-    return VALUE_INT;
+    /* rz-dev */
+{value_int} {       // by 星穹铁道高手
+
+    std::string str_value(yytext);  // 将输入字符转为string
+
+    int int_value = atoi(yytext);   // 将输入字符转为int
+
+    long long bigint_value = std::atoll(yytext);   // 将输入字符转为long long
+
+
+
+    if (std::to_string(int_value) == str_value){    // 转换前后字符相等
+
+        yylval->sv_int = atoi(yytext);
+
+        return VALUE_INT;
+
+    }
+
+    else{
+
+        BigInt *bigint = new BigInt(yytext);
+
+        if (std::to_string(bigint->value) != str_value){
+
+            bigint->flag = true;
+
+        }
+
+        yylval->sv_bigint = *bigint;
+
+        return VALUE_BIGINT;
+
+    }
+
 }
 {value_float} {
     yylval->sv_float = atof(yytext);
@@ -107,6 +145,11 @@ single_op ";"|"("|")"|","|"*"|"="|">"|"<"|"."
 {value_string} {
     yylval->sv_str = std::string(yytext + 1, strlen(yytext) - 2);
     return VALUE_STRING;
+}
+    /* rz-dev */
+{value_bigint} {
+    yylval->sv_bigint = *(new BigInt(yytext));
+    return VALUE_BIGINT;
 }
     /* EOF */
 <<EOF>> { return T_EOF; }

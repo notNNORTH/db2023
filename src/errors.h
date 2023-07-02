@@ -159,3 +159,8 @@ class PageNotExistError : public RMDBError {
     PageNotExistError(const std::string &table_name, int page_no)
         : RMDBError("Page " + std::to_string(page_no) + " in table " + table_name + "not exits") {}
 };
+
+class BigIntoverflow : public RMDBError {
+   public:
+    BigIntoverflow(){_msg = "failure";}
+};

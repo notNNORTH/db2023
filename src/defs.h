@@ -13,6 +13,12 @@ See the Mulan PSL v2 for more details. */
 #include <iostream>
 #include <map>
 
+#include <fstream>
+
+//添加
+#include <string.h>
+#include "errors.h"
+
 // 此处重载了<<操作符，在ColMeta中进行了调用
 template<typename T, typename = typename std::enable_if<std::is_enum<T>::value, T>::type>
 std::ostream &operator<<(std::ostream &os, const T &enum_val) {
@@ -40,14 +46,15 @@ struct Rid {
 };
 
 enum ColType {
-    TYPE_INT, TYPE_FLOAT, TYPE_STRING
+    TYPE_INT, TYPE_FLOAT, TYPE_STRING , TYPE_BIGINT
 };
 
 inline std::string coltype2str(ColType type) {
     std::map<ColType, std::string> m = {
             {TYPE_INT,    "INT"},
             {TYPE_FLOAT,  "FLOAT"},
-            {TYPE_STRING, "STRING"}
+            {TYPE_STRING, "STRING"},
+            {TYPE_BIGINT, "BIGINT"}
     };
     return m.at(type);
 }
@@ -62,3 +69,51 @@ public:
 
     virtual Rid rid() const = 0;
 };
+
+class BigInt {
+public:
+    long long value;
+    bool flag = 0;      // 判断数值范围是否合法
+    BigInt() {
+        value = 0;
+    }
+    //由char* 生成BigInt构造函数
+    BigInt(char* bit) {
+        value = std::atoll(bit);
+    }
+    //操作符重载
+    BigInt(int val) {
+        value = val;
+    }
+    //输出
+    friend std::ostream& operator<<(std::ostream& os, const BigInt& num) {
+        os << num.value;
+        return os;
+    }
+    //输入
+    friend std::istream& operator>>(std::istream& is, BigInt& num) {
+        num.value = 0;
+        char* bit = new char();
+        is >> bit;
+        num.value = std::atoll(bit);   
+        return is;
+    }
+
+    //转化为string
+    std::string tostring() {
+        
+        return std::to_string(value);
+
+    }
+    
+    bool operator>(const BigInt& other) const {
+        return value > other.value;
+    }
+    bool operator<(const BigInt& other) const {
+        return value < other.value;
+    }
+    bool operator==(const BigInt& other) const {
+        return value == other.value;
+    }
+};
+

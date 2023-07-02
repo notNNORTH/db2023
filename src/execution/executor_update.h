@@ -88,7 +88,11 @@ class UpdateExecutor : public AbstractExecutor {
             bool do_update = true;
             for (Condition &cond : conds_){
                 ConditionEvaluator Cal;
-                do_update = Cal.evaluate(cond, cols_check_, rec);
+                bool tmp = Cal.evaluate(cond, cols_check_, rec);
+                if (!tmp){
+                    do_update = false;
+                    break;
+                }
             }
             if(!do_update){continue;}
 
@@ -116,6 +120,14 @@ class UpdateExecutor : public AbstractExecutor {
                 auto& val = const_cast<Value&>(set_clause.rhs);
                 if (col.type == TYPE_FLOAT && val.type == TYPE_INT || col.type == TYPE_INT && val.type == TYPE_FLOAT){
                     val.type = col.type;
+                }
+                else if (col.type == TYPE_BIGINT && val.type == TYPE_INT ){
+                    BigInt bigint(val.int_val);
+                    val.set_bigint(bigint);
+                }
+                else if (col.type == TYPE_INT && val.type == TYPE_BIGINT){
+                    int value = val.bigint_val.value;
+                    val.set_int(value);
                 }
                 else if (col.type != val.type) {
                     throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
