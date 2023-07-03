@@ -21,7 +21,7 @@ enum JoinType {
 namespace ast {
 
 enum SvType {
-    SV_TYPE_INT, SV_TYPE_FLOAT, SV_TYPE_STRING,SV_TYPE_BIGINT
+    SV_TYPE_INT, SV_TYPE_FLOAT, SV_TYPE_STRING, SV_TYPE_BIGINT, SV_TYPE_DATETIME
 };
 
 enum SvCompOp {
@@ -141,6 +141,12 @@ struct BigIntLit : public Value {
     BigIntLit(BigInt val_) : val(val_) {}
 };
 
+struct DateTimeLit : public Value {
+    DateTime val;
+
+    DateTimeLit(DateTime val_) : val(val_) {}
+};
+
 struct Col : public Expr {
     std::string tab_name;
     std::string col_name;
@@ -240,6 +246,7 @@ struct SemValue {
     
     std::string sv_str;
     BigInt sv_bigint;       // by 星穹铁道高手
+    DateTime sv_datetime;   // by 星穹铁道高手
 
     OrderByDir sv_orderby_dir;
     std::vector<std::string> sv_strs;
@@ -275,3 +282,4 @@ extern std::shared_ptr<ast::TreeNode> parse_tree;
 }
 
 #define YYSTYPE ast::SemValue
+
