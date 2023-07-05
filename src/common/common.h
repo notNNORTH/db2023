@@ -177,7 +177,7 @@ public:
         
     }
 
-private:
+
     Value& getOperandValue(TabCol& col, std::vector<ColMeta>& cols, RmRecord& record, Value& value) {
         
         if (col.tab_name.empty() && col.col_name.empty()) {

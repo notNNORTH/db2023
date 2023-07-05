@@ -20,7 +20,7 @@ class DeleteExecutor : public AbstractExecutor {
     TabMeta tab_;                   // 表的元数据
     std::vector<Condition> conds_;  // delete的条件
     RmFileHandle *fh_;              // 表的数据文件句柄
-    std::vector<Rid> rids_;         // 需要删除的记录的位置
+    std::vector<Rid> rids_;         // 所有记录的rid
     std::string tab_name_;          // 表名称
     SmManager *sm_manager_;
 
@@ -82,19 +82,19 @@ class DeleteExecutor : public AbstractExecutor {
             RmRecord rec = *fh_->get_record(rid, context_);
 
             // 3.判断 WHERE 后面的condition
-            bool do_update = true;
+            bool do_delete = true;
             for (Condition &cond : conds_){
                 ConditionEvaluator Cal;
                 bool tmp = Cal.evaluate(cond, cols_check_, rec);
                 if (!tmp){
-                    do_update = false;
+                    do_delete = false;
                     break;
                 }
             }
             // if(!do_update){continue;}
 
 
-            if (do_update){
+            if (do_delete){
                 rids_delete.push_back(rid);
             }
         }
