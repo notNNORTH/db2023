@@ -50,7 +50,8 @@ WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_CO
 %type <sv_set_clauses> setClauses
 %type <sv_cond> condition
 %type <sv_conds> whereClause optWhereClause
-%type <sv_orderby>  order_clause opt_order_clause
+%type <sv_orderby>  order_clause
+%type <sv_orderbys>  opt_order_clause order_clauses
 %type <sv_orderby_dir> opt_asc_desc
 
 %%
@@ -366,12 +367,24 @@ tableList:
     ;
 
 opt_order_clause:
-    ORDER BY order_clause      
+    ORDER BY order_clauses
     { 
         $$ = $3; 
     }
     |   /* epsilon */ { /* ignore*/ }
     ;
+
+order_clauses:
+        order_clause 
+    { 
+        $$ = std::vector<std::shared_ptr<OrderBy>>{$1};
+    }
+    |
+        order_clauses ',' order_clause 
+    { 
+        $$.push_back($3);
+    }
+    ; 
 
 order_clause:
       col  opt_asc_desc 

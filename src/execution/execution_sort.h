@@ -18,18 +18,22 @@ See the Mulan PSL v2 for more details. */
 class SortExecutor : public AbstractExecutor {
    private:
     std::unique_ptr<AbstractExecutor> prev_;    // scan执行器
-    ColMeta cols_;          // 框架中只支持一个键排序，需要自行修改数据结构支持多个键排序
+    std::vector<ColMeta> cols_;          // 框架中只支持一个键排序，需要自行修改数据结构支持多个键排序
     size_t tuple_num;       // 处理的元组数量
-    bool is_desc_;          // true降序, false升序
+    std::vector<bool> is_desc_;          // true降序, false升序
     std::vector<size_t> used_tuple;
     std::unique_ptr<RmRecord> current_tuple;
 
     std::vector<RmRecord> all_records;  // 存储所有找到的元组
 
    public:
-    SortExecutor(std::unique_ptr<AbstractExecutor> prev, TabCol sel_cols, bool is_desc) {
+    SortExecutor(std::unique_ptr<AbstractExecutor> prev, std::vector<TabCol> sel_cols, std::vector<bool> is_desc) {
         prev_ = std::move(prev);
-        cols_ = prev_->get_col_offset(sel_cols);
+
+        for (auto &sel_col : sel_cols){
+            cols_.push_back(prev_->get_col_offset(sel_col));
+        }
+        
         is_desc_ = is_desc;
         tuple_num = 0;
         used_tuple.clear();
@@ -46,20 +50,12 @@ class SortExecutor : public AbstractExecutor {
 
     // 取第一个满足条件的record置为current_tuple
     void beginTuple() override {
-        if (is_desc_){      // 降序寻找
-            search_DESC();
-        }else{
-            search_ASC();
-        }
+        set_current_tuple();
     }
 
     // 取下一个满足条件的record置为current_tuple
     void nextTuple() override {
-        if (is_desc_){      // 降序寻找
-            search_DESC();
-        }else{
-            search_ASC();
-        }
+        set_current_tuple();
     }
 
     // 返回current_tuple
@@ -73,9 +69,9 @@ class SortExecutor : public AbstractExecutor {
         return current_tuple == nullptr;
     }
 
-    // 降序搜索下一个元组
-    void search_DESC(){
-        // 找到第一个没用过的元组
+    // 获取满足条件的tuple
+    void set_current_tuple(){
+        // 1.找到第一个未被使用的元组(index)
         int i = 0;
         int index = -1;
         for(; i < tuple_num; i++){
@@ -85,47 +81,43 @@ class SortExecutor : public AbstractExecutor {
             }
         }
 
-        for(; i < tuple_num; i++){
-            if(used_tuple[i]){ continue; }
-            
-            Value value_index = get_col_value(all_records[index], cols_);
-            Value value_i = get_col_value(all_records[i], cols_);
-
-            if (ConditionEvaluator::isGreaterThanOrEqual(value_i, value_index)){
-                index = i;
-            }
-        }
-        if (index == -1){
-            current_tuple = nullptr;
-        }else{
-            used_tuple[index] = 1;
-            current_tuple = std::make_unique<RmRecord>(all_records[index]);
-        }
-    }
-    
-
-    // 升序搜索下一个元组
-    void search_ASC(){
-        // 找到第一个没用过的元组
-        int i = 0;
-        int index = -1;
-        for(; i < tuple_num; i++){
-            if(!used_tuple[i]){
-                index = i;
-                break;
-            }
-        }
+        // 2.依次与所有未被使用的元组对比
+        //      2.1 记录对比属性
+        int order_col_size = cols_.size();  // 参与对比的属性数量
+        int order_col_index = 0;            // 当前对比属性位置
 
         for(; i < tuple_num; i++){
             if(used_tuple[i]){ continue; }
-            
-            Value value_index = get_col_value(all_records[index], cols_);
-            Value value_i = get_col_value(all_records[i], cols_);
 
-            if (ConditionEvaluator::isLessThanOrEqual(value_i, value_index)){
+            //  2.2 逐属性对比
+            bool better = true;
+            for (int j = 0; j < order_col_size; j++){
+                Value value_index = get_col_value(all_records[index], cols_[j]);
+                Value value_i = get_col_value(all_records[i], cols_[j]);
+
+                if (is_desc_[j]){
+                    if (ConditionEvaluator::isGreaterThan(value_i, value_index)){ break; }
+                    else if (ConditionEvaluator::isLessThan(value_i, value_index)){
+                        better = false;
+                        break;
+                    }
+                    continue;
+                }else{
+                    if (ConditionEvaluator::isLessThan(value_i, value_index)){ break; }
+                    else if (ConditionEvaluator::isGreaterThan(value_i, value_index)){
+                        better = false;
+                        break;
+                    }
+                    continue;
+                }
+            }
+            //  2.3 元组i的值更好：替换index
+            if (better){
                 index = i;
             }
         }
+
+        // 3.置current_tuple的值
         if (index == -1){
             current_tuple = nullptr;
         }else{
