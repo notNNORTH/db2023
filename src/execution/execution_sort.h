@@ -25,9 +25,10 @@ class SortExecutor : public AbstractExecutor {
     std::unique_ptr<RmRecord> current_tuple;
 
     std::vector<RmRecord> all_records;  // 存储所有找到的元组
+    int limit_;
 
    public:
-    SortExecutor(std::unique_ptr<AbstractExecutor> prev, std::vector<TabCol> sel_cols, std::vector<bool> is_desc) {
+    SortExecutor(std::unique_ptr<AbstractExecutor> prev, std::vector<TabCol> sel_cols, std::vector<bool> is_desc, int limit) {
         prev_ = std::move(prev);
 
         for (auto &sel_col : sel_cols){
@@ -46,6 +47,7 @@ class SortExecutor : public AbstractExecutor {
             used_tuple.push_back(0);    // 0为没用过，1为用过
         }
         tuple_num = all_records.size();
+        limit_ = limit;
     }
 
     // 取第一个满足条件的record置为current_tuple
@@ -60,13 +62,14 @@ class SortExecutor : public AbstractExecutor {
 
     // 返回current_tuple
     std::unique_ptr<RmRecord> Next() override {
+        limit_--;
         std::unique_ptr<RmRecord> record = std::make_unique<RmRecord>(*current_tuple);
         return record;
     }
 
     // 判断是否搜索结束
     bool is_end() const override{
-        return current_tuple == nullptr;
+        return (current_tuple == nullptr) || (limit_ == 0);
     }
 
     // 获取满足条件的tuple

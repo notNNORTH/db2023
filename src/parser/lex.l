@@ -91,6 +91,7 @@ value_datetime  '{digit}+\-{digit}+\-{digit}+\ {digit}+\:{digit}+\:{digit}\+'
 "ORDER" { return ORDER; }
 "BY" {  return BY;  }
 "ASC" { return ASC; }
+"LIMIT" { return LIMIT; }
 
 "BIGINT" { return BIGINT;}
 "DATETIME" { return DATETIME;}

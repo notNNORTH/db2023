@@ -278,7 +278,7 @@ std::shared_ptr<Plan> Planner::generate_sort_plan(std::shared_ptr<Query> query, 
         is_desc.push_back(orderBy->orderby_dir == ast::OrderBy_DESC);
     }
 
-    return std::make_shared<SortPlan>(T_Sort, std::move(plan), sel_cols, is_desc);
+    return std::make_shared<SortPlan>(T_Sort, std::move(plan), sel_cols, is_desc, x->limit);
 }
 
 
