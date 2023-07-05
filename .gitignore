@@ -6,5 +6,4 @@ test
 src/parser/lex.yy.cpp
 src/parser/yacc.tab.h
 src/parser/yacc.tab.cpp
-test_delete/output.txt
-test_delete/t
+test_delete
