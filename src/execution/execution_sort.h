@@ -43,6 +43,7 @@ class SortExecutor : public AbstractExecutor {
         /***************by 星穹铁道高手**************/
         for (prev_->beginTuple(); !prev_->is_end(); prev_->nextTuple()) {
             auto record = prev_->Next();
+            if (!record){ break; }
             all_records.push_back(*record);
             used_tuple.push_back(0);    // 0为没用过，1为用过
         }

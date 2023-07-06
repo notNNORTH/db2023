@@ -172,14 +172,16 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         return isend;
     }
     
-    //自己加的
+    ColMeta get_col_offset(const TabCol& target) override {
+        const std::vector<ColMeta>& rec_cols = cols();
+        auto pos = std::find_if(rec_cols.begin(), rec_cols.end(), [&](const ColMeta& col) {
+            return col.tab_name == target.tab_name && col.name == target.col_name;
+        });
 
-    // size_t tupleLen() const override {
-    //     return 0;
-    // }
-    
-    // std::vector<ColMeta> &cols() const override {
-    //     std::vector<ColMeta> *_cols = nullptr;
-    //     return *_cols;
-    // };
+        if (pos == rec_cols.end()) {
+            throw ColumnNotFoundError(target.tab_name + '.' + target.col_name);
+        }
+
+        return *pos;
+    }
 };
