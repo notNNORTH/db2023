@@ -57,7 +57,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
    
         int con_size = fed_conds_.size();   // 判断条件的个数
 
-        block_size = 1000;      // 初始化为最大1000个元组的缓冲区
+        block_size = 500;      // 初始化为最大1000个元组的缓冲区
         right_record = nullptr;
 
         auto my_left_cols = left_->cols();
@@ -120,7 +120,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         /*  嵌套循环连接算法（Block Nested-Loop-Join） */
         set_buffer(true);
         right_->beginTuple();
-        right_record = right_->get_fh()->get_record(right_->rid(), nullptr);
+        right_record = right_->Next();
         // left_tuple_index = 0;
         isend = (is_last_block && right_->is_end() && left_tuple_index == buffer.size());
     }
@@ -151,7 +151,20 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         
         right_->nextTuple();
         if ( !right_->is_end() ){
-            right_record = right_->get_fh()->get_record(right_->rid(), nullptr);
+            right_record = right_->Next();
+            if (!right_record){
+                right_->beginTuple();
+                right_record = right_->Next();
+
+                if(is_last_block){
+                    isend = true;
+                    return;
+                }
+                
+                set_buffer(false);
+                right_->beginTuple();
+                right_record = right_->Next();
+            }
             left_tuple_index = 0;
             return;
         }
@@ -164,7 +177,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         
         set_buffer(false);
         right_->beginTuple();
-        right_record = right_->get_fh()->get_record(right_->rid(), nullptr);
+        right_record = right_->Next();
         // isend = (left_->is_end() && right_->is_end() && left_tuple_index == buffer.size());
     }
 
@@ -222,7 +235,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         }
 
         for (; !left_->is_end() && buffer.size() < block_size; left_->nextTuple()){
-            auto left_record = left_->get_fh()->get_record(left_->rid(), nullptr);
+            auto left_record = left_->Next();
             buffer.push_back(*left_record);
         }
 
