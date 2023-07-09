@@ -57,7 +57,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
    
         int con_size = fed_conds_.size();   // 判断条件的个数
 
-        block_size = 2000;      // 初始化为最大1000个元组的缓冲区
+        block_size = 500;      // 初始化为最大1000个元组的缓冲区
         right_record = nullptr;
 
         auto my_left_cols = left_->cols();
