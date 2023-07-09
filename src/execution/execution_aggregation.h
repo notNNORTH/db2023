@@ -106,13 +106,14 @@ class AggregateExecutor : public AbstractExecutor {
     std::unique_ptr<RmRecord> Next() override {
         if(isend){return nullptr;}
         std::vector<double> temps;
+        std::vector<std::string> tempstrs;
         int len = 0;
         while(current < aops.size()){ //对于每个运算符循环          
             double temp = 0;
             ColType type = cols_[current].type;
             bool flag = true;//判断是否第一次进入min/max判断
             switch(aops[current]){
-                case(TYPE_SUM):                    
+                case(TYPE_SUM):{                    
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
                         if(type == TYPE_INT){
@@ -127,7 +128,9 @@ class AggregateExecutor : public AbstractExecutor {
                         prev_ -> nextTuple();         
                     }
                     break;
-                case(TYPE_MAX):
+                }
+                case(TYPE_MAX):{
+                    std::string tempstr;
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
                         if(type == TYPE_INT){
@@ -139,18 +142,32 @@ class AggregateExecutor : public AbstractExecutor {
                             else temp = temp > cur_int ? temp : cur_int;
                             
                         }
-                        else{
+                        else if(type == TYPE_FLOAT){
                             double cur_float = *(double*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                             if(flag){
                                 temp = cur_float;
                                 flag = false;
                             } 
                             else temp = temp > cur_float ? temp : cur_float;
+                        }else{
+                            std::string cur_str = std::string(((cur_rec -> data) + cols_[current].offset),cols_[current].len);
+                            if(flag){
+                                tempstr = cur_str;
+                                flag = false;
+                            } 
+                            else tempstr = tempstr > cur_str ? tempstr : cur_str;
                         }
                         prev_ -> nextTuple();                           
                     }
+                    if(!tempstr.empty()) {
+                        tempstrs.push_back(tempstr);
+                        temp = tempstrs.size() - 1;//指向tempstrs中的值
+                    }
                     break;
+                    }
                 case(TYPE_MIN):
+                { 
+                    std::string tempstr;
                     while(!prev_ -> is_end()){
                             std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
                             if(type == TYPE_INT){
@@ -161,17 +178,30 @@ class AggregateExecutor : public AbstractExecutor {
                                 } 
                                 else temp = temp < cur_int ? temp : cur_int;
                             }
-                            else{
+                            else if(type == TYPE_FLOAT){
                                 double cur_float = *(double*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                                     if(flag){
                                         temp = cur_float;
                                         flag = false;
                                     } 
                                     else temp = temp < cur_float ? temp : cur_float;
+                            }else{//string
+                                std::string cur_str = std::string(((cur_rec -> data) + cols_[current].offset),cols_[current].len);
+                                if(flag){
+                                tempstr = cur_str;
+                                flag = false;
+                                } 
+                            else tempstr = tempstr < cur_str ? tempstr : cur_str;
+
                             }
                             prev_ -> nextTuple();                             
                         }
-                        break;
+                        if(!tempstr.empty()) {
+                        tempstrs.push_back(tempstr);
+                        temp = tempstrs.size() - 1;//指向tempstrs中的值
+                        }
+                        break;     
+                }
                 case(TYPE_COUNT):{                   
                     std::set<double> tempset;
                     std::set<std::string> tempsetstr;
@@ -220,11 +250,12 @@ class AggregateExecutor : public AbstractExecutor {
         char *cur_data = data; 
         int offset = 0;
         int i = 0;//指向当前处理col数
-        std::vector<int> lens;//记录每条记录的长度
         std::vector<int> offsets;//记录每条记录的offsets
+        std::vector<int> lens;//记录每条记录的长度
+        
         for(auto type : temptype){
             switch(type){
-                case(TYPE_INT):                    
+                case(TYPE_INT):{                    
                     *(int*)cur_data = (int)temps[i];
                     offsets.push_back(offset);
                     offset += sizeof(int);
@@ -232,7 +263,8 @@ class AggregateExecutor : public AbstractExecutor {
                     len += sizeof(int);
                     lens.push_back(sizeof(int));
                     break;
-                case(TYPE_FLOAT): 
+                }
+                case(TYPE_FLOAT):{ 
                     //*(float*)cur_data = (float)temps[i]; //输出要求为float类型
                     offsets.push_back(offset);
                     double f = (double)temps[i];
@@ -241,7 +273,19 @@ class AggregateExecutor : public AbstractExecutor {
                     cur_data += sizeof(double); 
                     len += sizeof(double);
                     lens.push_back(sizeof(double));
-                    break;               
+                    break;
+                    }
+                case(TYPE_STRING):{  
+                    offsets.push_back(offset);
+                    std::string str = tempstrs[temps[i]];
+                    const char* strData = str.c_str();
+                    std::size_t strSize = str.size() + 1; // 包括终止符 '\0'
+                    std::memcpy(data + offset, strData, strSize);
+                    offset += strSize;
+                    cur_data += strSize;
+                    len += strSize;
+                    lens.push_back(strSize);
+                    }           
             }
             i++;
         }   
