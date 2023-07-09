@@ -22,7 +22,7 @@ using namespace ast;
 
 // keywords
 %token SHOW TABLES CREATE TABLE DROP DESC INSERT INTO VALUES DELETE FROM ASC ORDER BY
-WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_COMMIT TXN_ABORT TXN_ROLLBACK ORDER_BY BIGINT
+WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_COMMIT TXN_ABORT TXN_ROLLBACK ORDER_BY BIGINT AS SUM MAX MIN COUNT 
 // non-keywords
 %token LEQ NEQ GEQ T_EOF
 
@@ -51,6 +51,9 @@ WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_CO
 %type <sv_conds> whereClause optWhereClause
 %type <sv_orderby>  order_clause opt_order_clause
 %type <sv_orderby_dir> opt_asc_desc
+%type <sv_aggregatesym> aggregatesym
+%type <sv_aggregate> aggregate
+%type <sv_aggregates> aggregates
 
 %%
 start:
@@ -146,6 +149,10 @@ dml:
         $$ = std::make_shared<UpdateStmt>($2, $4, $5);
     }
     |   SELECT selector FROM tableList optWhereClause opt_order_clause
+    {
+        $$ = std::make_shared<SelectStmt>($2, $4, $5, $6);
+    }
+    |   SELECT aggregates FROM tableList optWhereClause opt_order_clause
     {
         $$ = std::make_shared<SelectStmt>($2, $4, $5, $6);
     }
@@ -377,6 +384,36 @@ opt_asc_desc:
     |       { $$ = OrderBy_DEFAULT; }
     ;    
 
+aggregatesym:
+    SUM            { $$ = TYPE_SUM;  }
+    |MAX           { $$ = TYPE_MAX;  }
+    |MIN           { $$ = TYPE_MIN;  }
+    |COUNT         { $$ = TYPE_COUNT;  }
+    ;
+
+aggregate:
+    aggregatesym '(' col ')' AS colName
+    {
+        $$ = std::make_shared<Aggregate>($1, $3, $6);
+    }
+    |
+    aggregatesym '(' '*' ')' AS colName
+    {
+        $1 = TYPE_COUNTALL;
+        $$ = std::make_shared<Aggregate>($1, std::make_shared<Col>("","*"), $6);
+    }
+    ;
+aggregates:
+        aggregate       
+    {
+        $$ = std::vector<std::shared_ptr<Aggregate>>{$1};
+    }
+    |   aggregates ',' aggregate    
+    {
+        $$.push_back($3);
+    }
+    ;
+    
 tbName: IDENTIFIER;
 
 colName: IDENTIFIER;

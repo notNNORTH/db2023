@@ -40,7 +40,8 @@ typedef enum PlanTag{
     T_IndexScan,
     T_NestLoop,
     T_Sort,
-    T_Projection
+    T_Projection,
+    T_Aggregate//rz-dev
 } PlanTag;
 
 // 查询执行计划
@@ -131,7 +132,25 @@ class SortPlan : public Plan
         bool is_desc_;
         
 };
-
+//rz-dev
+class AggregatePlan : public Plan
+{
+    public:
+    AggregatePlan(PlanTag tag, std::shared_ptr<Plan> subplan, std::vector<AggreOp> aops,std::vector<std::string> colouts_,std::vector<ColMeta> all_cols_)
+    {
+        Plan::tag = tag;
+        subplan_ = std::move(subplan);
+        aops_ = aops;
+        colouts = colouts_;
+        all_cols = all_cols_;
+    }
+    ~AggregatePlan(){}
+    std::shared_ptr<Plan> subplan_;
+    std::vector<AggreOp> aops_;
+    std::vector<std::string> colouts;
+    std::vector<TabCol> colsin;
+    std::vector<ColMeta> all_cols;
+};
 // dml语句，包括insert; delete; update; select语句　
 class DMLPlan : public Plan
 {

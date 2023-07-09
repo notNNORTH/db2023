@@ -33,6 +33,11 @@ enum OrderByDir {
     OrderBy_ASC,
     OrderBy_DESC
 };
+//rz-dev
+enum AggregateOp {
+    NONE_AGGREGATE,TYPE_SUM, TYPE_MAX, TYPE_MIN, TYPE_COUNT,TYPE_COUNTALL
+};
+
 
 // Base class for tree nodes
 struct TreeNode {
@@ -174,6 +179,17 @@ struct OrderBy : public TreeNode
        cols(std::move(cols_)), orderby_dir(std::move(orderby_dir_)) {}
 };
 
+//rz-dev
+struct Aggregate : public TreeNode{
+    AggregateOp aop;
+    std::shared_ptr<Col> col;
+    std::string colname;
+    
+    Aggregate(AggregateOp aop_, std::shared_ptr<Col> col_,std::string colname_):
+    aop(std::move(aop_)),col(std::move(col_)), colname(std::move(colname_)){}
+};
+
+
 struct InsertStmt : public TreeNode {
     std::string tab_name;
     std::vector<std::shared_ptr<Value>> vals;
@@ -217,11 +233,14 @@ struct SelectStmt : public TreeNode {
     std::vector<std::string> tabs;
     std::vector<std::shared_ptr<BinaryExpr>> conds;
     std::vector<std::shared_ptr<JoinExpr>> jointree;
+    //rz-dev
+    std::vector<AggregateOp> aops;
+    std::vector<std::string> colouts;
 
     
     bool has_sort;
     std::shared_ptr<OrderBy> order;
-
+    bool is_aggregate;
 
     SelectStmt(std::vector<std::shared_ptr<Col>> cols_,
                std::vector<std::string> tabs_,
@@ -230,8 +249,50 @@ struct SelectStmt : public TreeNode {
             cols(std::move(cols_)), tabs(std::move(tabs_)), conds(std::move(conds_)), 
             order(std::move(order_)) {
                 has_sort = (bool)order;
+                is_aggregate = false;
+            }
+    //rz-dev
+    SelectStmt(std::vector<std::shared_ptr<Aggregate>> aggregates_,
+               std::vector<std::string> tabs_,
+               std::vector<std::shared_ptr<BinaryExpr>> conds_,
+               std::shared_ptr<OrderBy> order_) :
+            tabs(std::move(tabs_)), conds(std::move(conds_)), 
+            order(std::move(order_)) {
+                for(auto aggregate : aggregates_){
+                    cols.push_back(aggregate -> col);
+                    aops.push_back(aggregate -> aop);
+                    colouts.push_back(aggregate -> colname);
+                }
+                has_sort = (bool)order;
+                is_aggregate = true;
             }
 };
+//to delete
+struct AggregateStmt : public TreeNode {
+    AggregateOp aop;
+    std::shared_ptr<Col> colin;
+    std::shared_ptr<Col> colout;
+    std::vector<std::string> tabs;
+    std::vector<std::shared_ptr<BinaryExpr>> conds;
+    std::vector<std::shared_ptr<JoinExpr>> jointree;
+
+    
+    bool has_sort;
+    std::shared_ptr<OrderBy> order;
+
+
+    AggregateStmt(AggregateOp aop_,
+                std::shared_ptr<Col> colin_,
+                std::shared_ptr<Col> colout_,
+               std::vector<std::string> tabs_,
+               std::vector<std::shared_ptr<BinaryExpr>> conds_,
+               std::shared_ptr<OrderBy> order_) :
+            aop(std::move(aop_)),colin(std::move(colin_)), colout(std::move(colout_)), tabs(std::move(tabs_)), conds(std::move(conds_)), 
+            order(std::move(order_)) {
+                has_sort = (bool)order;
+            }
+};
+
 
 // Semantic value
 struct SemValue {
@@ -268,6 +329,10 @@ struct SemValue {
     std::vector<std::shared_ptr<BinaryExpr>> sv_conds;
 
     std::shared_ptr<OrderBy> sv_orderby;
+    //rz-dev
+    AggregateOp sv_aggregatesym;
+    std::shared_ptr<Aggregate> sv_aggregate;
+    std::vector<std::shared_ptr<Aggregate>> sv_aggregates;
 };
 
 extern std::shared_ptr<ast::TreeNode> parse_tree;

@@ -91,6 +91,11 @@ value_bigint {sign}?{digit}+
 "ASC" { return ASC; }
 
 "BIGINT" { return BIGINT;}
+"AS" { return AS;}
+"SUM" { return SUM;}
+"MIN" { return MIN;}
+"MAX" { return MAX;}
+"COUNT" { return COUNT;}
     /* operators */
 ">=" { return GEQ; }
 "<=" { return LEQ; }
