@@ -49,7 +49,7 @@ class ShowIndexExecutor : public AbstractExecutor {
         RecordPrinter printer(3);
         //printer.print_separator(context_);
         //printer.print_record({"Table","U/N","Index"}, context_);
-        //printer.print_separator(context_);
+        printer.print_separator(context_);
         
 
         for (int m=0;m<tab_.indexes.size();m++) {
@@ -67,7 +67,7 @@ class ShowIndexExecutor : public AbstractExecutor {
             printer.print_record({entry.tab_name,"unique",idx_str}, context_);
             outfile << "| " << entry.tab_name <<" | "<<"unique"<<" | "<<idx_str<< " |\n";
         }
-        //printer.print_separator(context_);
+        printer.print_separator(context_);
         outfile.close();
         return nullptr;
     }

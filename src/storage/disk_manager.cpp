@@ -179,17 +179,22 @@ int DiskManager::open_file(const std::string &path) {
     // 调用open()函数，使用O_RDWR模式
     // 注意不能重复打开相同文件，并且需要更新文件打开列表
     // 调用 open() 函数，使用 O_RDWR 模式
-    int fd = open(path.c_str(), O_RDWR);
-    if (fd == -1) {
-        // 文件打开失败，抛出异常或进行错误处理
-        throw FileNotFoundError("DiskManager::open_file Error");
+    if(path2fd_.count(path)==0){
+        int fd = open(path.c_str(), O_RDWR);
+        if (fd == -1) {
+            // 文件打开失败，抛出异常或进行错误处理
+            throw FileNotFoundError("DiskManager::open_file Error");
+        }
+
+        // 更新文件打开列表
+        path2fd_[path] = fd;
+        fd2path_[fd] = path;
+
+        return fd;
+    }else{
+        return path2fd_[path];
     }
-
-    // 更新文件打开列表
-    path2fd_[path] = fd;
-    fd2path_[fd] = path;
-
-    return fd;
+    
 }
 
 /**

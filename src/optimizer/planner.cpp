@@ -23,12 +23,86 @@ See the Mulan PSL v2 for more details. */
 #include "record_printer.h"
 
 // 目前的索引匹配规则为：完全匹配索引字段，且全部为单点查询，不会自动调整where条件的顺序
-bool Planner::get_index_cols(std::string tab_name, std::vector<Condition> curr_conds, std::vector<std::string>& index_col_names) {
+bool Planner::get_index_cols(std::string tab_name, std::vector<Condition> &curr_conds, std::vector<std::string>& index_col_names) {
     index_col_names.clear();
-    for(auto& cond: curr_conds) {
-        if(cond.is_rhs_val && cond.op == OP_EQ && cond.lhs_col.tab_name.compare(tab_name) == 0)
-            index_col_names.push_back(cond.lhs_col.col_name);
+    std::vector<Condition> legal_index_cond;
+
+    for(int b=0;b<curr_conds.size();) {
+        auto cond=curr_conds[b];
+        if(cond.is_rhs_val && ((cond.op == OP_EQ)||(cond.op == OP_GE)||(cond.op == OP_GT)
+                            ||(cond.op == OP_LE)||(cond.op== OP_LT)) 
+                            && cond.lhs_col.tab_name.compare(tab_name) == 0){
+
+            legal_index_cond.push_back(cond);
+            curr_conds.erase(curr_conds.begin()+b);
+            continue;
+        }
+        b++;
     }
+
+    // 3. 遍历where条件表达式列表，按照最左匹配原则，将条件表达式分组并重新组织顺序
+    auto first_tab_indexes=sm_manager_->db_.get_table(tab_name).indexes;
+
+    if(first_tab_indexes.size()!=0){
+
+        int max_match_num=0;
+        int max_match_idx=-1;
+
+
+        //我们应该选取哪个index呢？所以要遍历所有index
+        for(int i=0;i<first_tab_indexes.size();i++){
+
+            auto this_index_cols=first_tab_indexes[i].cols;
+            int this_index_match=0;
+
+            //对于当前的index，我们要从左到右，对index的每一列在conds中寻找是否有匹配的项
+            for(int j=0;j<this_index_cols.size();j++){
+                bool found=false;
+                auto this_index_col=this_index_cols[j];
+                int found_cond_col=0;
+
+                for(int k=0;k<legal_index_cond.size();k++){
+                    if(this_index_col.name==legal_index_cond[k].lhs_col.col_name){
+                        if(found_cond_col==0){this_index_match++;}                       
+                        found_cond_col++;
+                        found=true;
+                    }
+                }
+
+                if(!found){break;}
+
+                if(this_index_match>max_match_num){
+                    max_match_num=this_index_match;
+                    max_match_idx=i;
+                }
+            }     
+        }
+
+        if(max_match_idx!=-1){
+            auto max_match_index=first_tab_indexes[max_match_idx];
+            int pos=0;
+
+            for(int p=0;p<max_match_index.col_num;p++){
+                auto col_in_index=max_match_index.cols[p].name;
+                for(int m=0;m<legal_index_cond.size();m++){
+                    if(legal_index_cond[m].lhs_col.col_name==col_in_index){
+                        auto swap_temp=legal_index_cond[pos];
+                        legal_index_cond[pos]=legal_index_cond[m];
+                        legal_index_cond[m]=swap_temp;
+                        pos++;
+                    }
+                }
+            }
+
+            for(int u=0;u<max_match_index.col_num;u++){
+                index_col_names.push_back(max_match_index.cols[u].name);
+            }
+        }
+    } 
+    for(int q=0;q<curr_conds.size();q++){
+        legal_index_cond.push_back(curr_conds[q]);
+    }  
+    curr_conds=legal_index_cond;
     TabMeta& tab = sm_manager_->db_.get_table(tab_name);
     if(tab.is_index(index_col_names)) return true;
     return false;
@@ -119,8 +193,6 @@ std::shared_ptr<Plan> pop_scan(int *scantbl, std::string table, std::vector<std:
 
 std::shared_ptr<Query> Planner::logical_optimization(std::shared_ptr<Query> query, Context *context)
 {
-    
-    //TODO 实现逻辑优化规则
 
     return query;
 }

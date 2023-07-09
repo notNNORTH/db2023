@@ -74,7 +74,7 @@ class IxNodeHandle {
         rids = reinterpret_cast<Rid *>(keys + file_hdr->keys_size_);
     }
 
-    int get_size() { return page_hdr->num_key; }
+    int get_size() const{ return page_hdr->num_key; }
 
     void set_size(int size) { page_hdr->num_key = size; }
 
@@ -179,6 +179,12 @@ class IxIndexHandle {
    public:
     IxIndexHandle(DiskManager *disk_manager, BufferPoolManager *buffer_pool_manager, int fd);
 
+    BufferPoolManager* get_bpm() { return buffer_pool_manager_; }
+
+    int get_fd(){return fd_;}
+
+    IxFileHdr* get_filehdr(){return file_hdr_;}
+
     // for search
     bool get_value(const char *key, std::vector<Rid> *result, Transaction *transaction);
 
@@ -234,4 +240,6 @@ class IxIndexHandle {
 
     // for index test
     Rid get_rid(const Iid &iid) const;
+
+    
 };

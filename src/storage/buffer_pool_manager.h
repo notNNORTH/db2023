@@ -35,7 +35,7 @@ class BufferPoolManager {
 
    public:
     BufferPoolManager(size_t pool_size, DiskManager *disk_manager)
-        : pool_size_(pool_size), disk_manager_(disk_manager) {
+        : pool_size_(pool_size), disk_manager_(disk_manager),latch_(){
         // 为buffer pool分配一块连续的内存空间
         pages_ = new Page[pool_size_];
         // 可以被Replacer改变
