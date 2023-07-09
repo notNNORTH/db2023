@@ -57,7 +57,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
    
         int con_size = fed_conds_.size();   // 判断条件的个数
 
-        block_size = 500;      // 初始化为最大1000个元组的缓冲区
+        block_size = 1000;      // 初始化为最大1000个元组的缓冲区
         right_record = nullptr;
 
         auto my_left_cols = left_->cols();
@@ -122,7 +122,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         right_->beginTuple();
         right_record = right_->Next();
         // left_tuple_index = 0;
-        isend = (is_last_block && right_->is_end() && left_tuple_index == buffer.size());
+        isend = (right_->is_end() || left_tuple_index == buffer.size());
     }
 
     void nextTuple() override {
@@ -164,6 +164,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
                 set_buffer(false);
                 right_->beginTuple();
                 right_record = right_->Next();
+                return;
             }
             left_tuple_index = 0;
             return;
@@ -184,6 +185,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     std::unique_ptr<RmRecord> Next() override {
 
         if (isend){return nullptr;}     // 虽然这句话不可能执行
+        if (buffer.size() == 0){ return nullptr; }
         
         // 构造新的记录并返回
         for(; !isend; nextTuple())
@@ -236,12 +238,15 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
 
         for (; !left_->is_end() && buffer.size() < block_size; left_->nextTuple()){
             auto left_record = left_->Next();
-            buffer.push_back(*left_record);
+            if (left_record){
+                buffer.push_back(*left_record);
+            }else{
+                break;
+            }
         }
 
         // 3.置位左边的index
         left_tuple_index = 0;
-
         is_last_block = left_->is_end();
     }
 
