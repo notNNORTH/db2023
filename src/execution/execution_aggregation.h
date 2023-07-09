@@ -127,6 +127,7 @@ class AggregateExecutor : public AbstractExecutor {
                         }
                         prev_ -> nextTuple();         
                     }
+                    prev_ -> beginTuple();
                     break;
                 }
                 case(TYPE_MAX):{
@@ -163,6 +164,7 @@ class AggregateExecutor : public AbstractExecutor {
                         tempstrs.push_back(tempstr);
                         temp = tempstrs.size() - 1;//指向tempstrs中的值
                     }
+                    prev_ -> beginTuple();
                     break;
                     }
                 case(TYPE_MIN):
@@ -187,7 +189,7 @@ class AggregateExecutor : public AbstractExecutor {
                                     else temp = temp < cur_float ? temp : cur_float;
                             }else{//string
                                 std::string cur_str = std::string(((cur_rec -> data) + cols_[current].offset),cols_[current].len);
-                                if(flag){
+                            if(flag){
                                 tempstr = cur_str;
                                 flag = false;
                                 } 
@@ -200,6 +202,7 @@ class AggregateExecutor : public AbstractExecutor {
                         tempstrs.push_back(tempstr);
                         temp = tempstrs.size() - 1;//指向tempstrs中的值
                         }
+                        prev_ -> beginTuple();
                         break;     
                 }
                 case(TYPE_COUNT):{                   
@@ -221,7 +224,8 @@ class AggregateExecutor : public AbstractExecutor {
                         }
                         prev_ -> nextTuple();                             
                     }
-                    temp = tempset.size()+tempsetstr.size();//一个为0,一个为所求,和为所求               
+                    temp = tempset.size()+tempsetstr.size();//一个为0,一个为所求,和为所求 
+                    prev_ -> beginTuple();              
                     break;
                     } 
                 case(TYPE_COUNTALL):{                                       
@@ -232,11 +236,12 @@ class AggregateExecutor : public AbstractExecutor {
                         countallset.insert(*rec);
                         prev_ -> nextTuple(); 
                     }
-                    temp = countallset.size();               
-                break;
+                    temp = countallset.size();
+                    prev_ -> beginTuple();
+                    break;
                 }
             }
-            if(aops[current] != TYPE_COUNT){
+            if(!(aops[current] == TYPE_COUNT || aops[current] == TYPE_COUNTALL)){
                 temptype.push_back(type);
             }                    
             else{
