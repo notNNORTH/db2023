@@ -60,8 +60,9 @@ class AggregateExecutor : public AbstractExecutor {
     int len; //长度
     std::vector<ColType> temptype;
     std::vector<ColMeta> colsout;//为了代码的一致性新建一个colsout实现输出cols的type,offset,len的重写,即调用cols()输出colout而不是cols
+    std::vector<TabCol> colins;//原数据列便于get_col找出待求列
    public:
-    AggregateExecutor(std::unique_ptr<AbstractExecutor> prev, std::vector<AggreOp> aops_,const std::vector<ColMeta> &all_cols ) {
+    AggregateExecutor(std::unique_ptr<AbstractExecutor> prev, std::vector<AggreOp> aops_,const std::vector<ColMeta> &all_cols ,std::vector<TabCol> colin) {
         prev_ = std::move(prev);
         aops = aops_ ;
         cols_= all_cols;
@@ -73,11 +74,21 @@ class AggregateExecutor : public AbstractExecutor {
         //_abstract_rid = prev_ ->rid();
         //context_ = context;
         colsout = cols_;
+        colins = colin;
+        //修改colsout中type方便projection中查询
         for(int i = 0;i < cols_.size();i++){
             if(aops[i] == TYPE_COUNT || aops[i] == TYPE_COUNTALL){                 
                colsout[i].type = TYPE_INT;
                colsout[i].len = sizeof(int);
             }
+        }
+
+        auto prev_cols = prev_ -> cols();
+        for (int i = 0;i < cols_.size();i++)
+        {
+            if(aops[i]==TYPE_COUNTALL) continue;
+            auto pos = get_col(prev_cols, colins[i]);
+            cols_[i].offset = pos -> offset;
         }
 
     }
@@ -87,19 +98,7 @@ class AggregateExecutor : public AbstractExecutor {
     }
 
     void nextTuple() override {
-        // if(prev_ -> is_end()){
-        //     if(current == aops.size() - 1){
-        //         isend = true;
-        //     }
-        //     else{
-        //         current++;
-        //         cur_op = aops[current];
-        //         prev_ -> beginTuple(); 
-        //     }
-        // }
-        // else{
-        //    prev_ -> nextTuple();
-        // }
+        //只返回一个tuple
         isend = true;
     }
 
@@ -116,7 +115,12 @@ class AggregateExecutor : public AbstractExecutor {
                 case(TYPE_SUM):{                    
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
+                        if(!cur_rec){
+                            prev_ -> nextTuple();
+                            continue;
+                        }
                         if(type == TYPE_INT){
+
                             int cur_int = *(int*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                             temp += cur_int;
                            
@@ -134,6 +138,10 @@ class AggregateExecutor : public AbstractExecutor {
                     std::string tempstr;
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
+                        if(!cur_rec){
+                            prev_ -> nextTuple();
+                            continue;
+                        }
                         if(type == TYPE_INT){
                             int cur_int = *(int*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                             if(flag){
@@ -172,6 +180,10 @@ class AggregateExecutor : public AbstractExecutor {
                     std::string tempstr;
                     while(!prev_ -> is_end()){
                             std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
+                            if(!cur_rec){
+                                prev_ -> nextTuple();
+                                continue;
+                            }
                             if(type == TYPE_INT){
                                 int cur_int = *(int*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                                 if(flag){
@@ -210,6 +222,10 @@ class AggregateExecutor : public AbstractExecutor {
                     std::set<std::string> tempsetstr;
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
+                        if(!cur_rec){
+                            prev_ -> nextTuple();
+                            continue;
+                        }
                         if(type == TYPE_INT){
                             int cur_int = *(int*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                             tempset.insert(cur_int);

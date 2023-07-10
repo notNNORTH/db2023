@@ -286,6 +286,7 @@ std::shared_ptr<Plan> Planner::generate_aggregate_plan(std::shared_ptr<Query> qu
     for (auto col : query -> colsin) {
         if(col.tab_name != ""){
             ColMeta allcol = *((sm_manager_->db_.get_table(col.tab_name)).get_col(col.col_name)).base();
+            allcol.name = query -> colouts[cur];
             all_cols.push_back(allcol);
             colins.push_back(col);
         }else{
