@@ -302,6 +302,17 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
         curr_handle = child_handle;
     }
 
+    bool last=(curr_handle->lower_bound(key)>curr_handle->get_size()-1)&&
+                (curr_handle->get_page_no()!=curr_handle->file_hdr->last_leaf_);
+
+    if(operation==Operation::FIND&&last){
+        page_id_t next_leaf_page=curr_handle->get_next_leaf();
+        IxNodeHandle *next_leaf=fetch_node(next_leaf_page);
+        buffer_pool_manager_->unpin_page(curr_handle->get_page_id(),false);
+        //delete curr_handle;
+        curr_handle = next_leaf;
+    }
+
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
     is_locked=false;
     return std::make_pair(curr_handle, is_locked);
