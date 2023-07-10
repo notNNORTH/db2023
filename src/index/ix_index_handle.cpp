@@ -274,7 +274,7 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
     // 2. 从根节点开始不断向下查找目标key
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
 
-    std::scoped_lock lock{root_latch_};
+    
     bool is_locked=true;
 
     
@@ -446,13 +446,11 @@ void IxIndexHandle::insert_into_parent(IxNodeHandle *old_node, const char *key, 
     }
 
     // 2. 获取原结点（old_node）的父亲结点
-    page_id_t parent_page_id_t = old_node->get_parent_page_no();
-    Page *parent_page = buffer_pool_manager_->fetch_page({fd_,parent_page_id_t});
-    IxNodeHandle *parent_node = new IxNodeHandle(file_hdr_, parent_page);
+    IxNodeHandle *parent_node=fetch_node(old_node->get_parent_page_no());
 
     // 3. 获取key对应的rid，并将(key, rid)插入到父亲结点
-    Rid* rid=new_node->get_rid(0);
-    parent_node->insert(key,*rid);
+    Rid rid=Rid{new_node->get_page_no(),-1};
+    parent_node->insert(key,rid);
 
     // 4. 如果父亲结点仍需要继续分裂，则进行递归插入
     if (parent_node->get_size() >= file_hdr_->btree_order_) {

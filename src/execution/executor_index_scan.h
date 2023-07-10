@@ -34,7 +34,7 @@ class IndexScanExecutor : public AbstractExecutor {
 
     SmManager *sm_manager_;
     std::vector<ColMeta> cols_check_;         // 条件语句中所有用到列的列的元数据信息
-    std::unique_ptr<IxIndexHandle> ix_handle;
+    IxIndexHandle *ix_handle;
 
    public:
     IndexScanExecutor(SmManager *sm_manager, std::string tab_name, std::vector<Condition> conds, std::vector<std::string> index_col_names,
@@ -64,7 +64,8 @@ class IndexScanExecutor : public AbstractExecutor {
             }
         }
         fed_conds_ = conds_;
-        ix_handle=sm_manager_->get_ix_manager()->open_index(tab_name_,index_col_names_);
+        auto ix_name=sm_manager_->get_ix_manager()->get_index_name(tab_name_,index_col_names_);
+        ix_handle=(sm_manager_->ihs_[ix_name]).get();
     }
 
     void beginTuple() override {
@@ -225,7 +226,7 @@ class IndexScanExecutor : public AbstractExecutor {
         sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
         sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
         
-        scan_ = std::make_unique<IxScan>(ix_handle.get(),lower,upper,sm_manager_->get_bpm());
+        scan_ = std::make_unique<IxScan>(ix_handle,lower,upper,sm_manager_->get_bpm());
         rid_=scan_->rid();
     }
 
