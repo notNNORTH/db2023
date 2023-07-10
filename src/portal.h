@@ -176,7 +176,7 @@ class Portal
                                             x->sel_col_, x->is_desc_);
         }else if(auto x = std::dynamic_pointer_cast<AggregatePlan>(plan)){
             std::unique_ptr<AggregateExecutor> aggre = std::make_unique<AggregateExecutor>(convert_plan_executor(x->subplan_, context),
-                            x->aops_,x->all_cols);
+                            x->aops_,x->all_cols,x->colsin);
             return aggre;
         }
         return nullptr;

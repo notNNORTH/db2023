@@ -136,13 +136,14 @@ class SortPlan : public Plan
 class AggregatePlan : public Plan
 {
     public:
-    AggregatePlan(PlanTag tag, std::shared_ptr<Plan> subplan, std::vector<AggreOp> aops,std::vector<std::string> colouts_,std::vector<ColMeta> all_cols_)
+    AggregatePlan(PlanTag tag, std::shared_ptr<Plan> subplan, std::vector<AggreOp> aops,std::vector<std::string> colouts_,std::vector<ColMeta> all_cols_,std::vector<TabCol> colin)
     {
         Plan::tag = tag;
         subplan_ = std::move(subplan);
         aops_ = aops;
         colouts = colouts_;
         all_cols = all_cols_;
+        colsin = colin;
     }
     ~AggregatePlan(){}
     std::shared_ptr<Plan> subplan_;

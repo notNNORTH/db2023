@@ -281,16 +281,19 @@ std::shared_ptr<Plan> Planner::generate_aggregate_plan(std::shared_ptr<Query> qu
     }
     std::vector<std::string> tables = query->tables;
     std::vector<ColMeta> all_cols;
+    std::vector<TabCol> colins;
     int cur = 0;//指向当前处理的colsin的位置
     for (auto col : query -> colsin) {
         if(col.tab_name != ""){
             ColMeta allcol = *((sm_manager_->db_.get_table(col.tab_name)).get_col(col.col_name)).base();
             all_cols.push_back(allcol);
+            colins.push_back(col);
         }else{
             if(col.col_name == "*"){
                 ColMeta allcol = *new ColMeta();
                 allcol.name = query -> colouts[cur] ;
                 all_cols.push_back(allcol);
+                colins.push_back(col);
             }else{
                 for (auto &sel_tab_name : tables) {
                     TabMeta tabmeta = sm_manager_->db_.get_table(sel_tab_name);
@@ -298,13 +301,17 @@ std::shared_ptr<Plan> Planner::generate_aggregate_plan(std::shared_ptr<Query> qu
                         ColMeta allcol = *tabmeta.get_col(col.col_name).base(); //找到第一个表中的col如果有重名应该会有表名输入
                         allcol.name = query -> colouts[cur];
                         all_cols.push_back(allcol);
+                        TabCol colin = *new TabCol();
+                        colin.tab_name = allcol.tab_name;
+                        colin.col_name = col.col_name;
+                        colins.push_back(colin);
                     }
                 } 
             }
         }
         cur++;
     }
-    return std::make_shared<AggregatePlan>(T_Aggregate, std::move(plan),query -> aops,query -> colouts,all_cols);
+    return std::make_shared<AggregatePlan>(T_Aggregate, std::move(plan),query -> aops,query -> colouts, all_cols,colins);
 }
 
 /**
