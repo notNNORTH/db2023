@@ -435,6 +435,12 @@ void IxIndexHandle::insert_into_parent(IxNodeHandle *old_node, const char *key, 
         old_node->set_parent_page_no(new_root_node->get_page_no());
         new_node->set_parent_page_no(new_root_node->get_page_no());
 
+        Rid rid1=Rid{old_node->get_page_no(),-1};
+        new_root_node->insert(old_node->get_key(0),rid1);
+
+        Rid rid2=Rid{new_node->get_page_no(),-1};
+        new_root_node->insert(new_node->get_key(0),rid2);
+
         buffer_pool_manager_->unpin_page(new_root_node->get_page_id(), true);  // Unpin new root
         return;
     }
