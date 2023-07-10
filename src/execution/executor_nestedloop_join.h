@@ -57,7 +57,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
    
         int con_size = fed_conds_.size();   // 判断条件的个数
 
-        block_size = 500;      // 初始化为最大1000个元组的缓冲区
+        block_size = 1000;      // 初始化为最大1000个元组的缓冲区
         right_record = nullptr;
 
         auto my_left_cols = left_->cols();
@@ -205,7 +205,11 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
             bool ret = true;
             for (Condition &cond : fed_conds_){
                 ConditionEvaluator Cal;
-                ret = Cal.evaluate(cond, cols_check_, left_record, *right_record);
+                bool do_join = Cal.evaluate(cond, cols_check_, left_record, *right_record);
+                if (!do_join){
+                    ret = false;
+                    break;
+                }
             }
 
             if(ret){
