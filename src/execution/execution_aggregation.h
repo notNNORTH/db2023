@@ -13,8 +13,9 @@ struct Record {
     int size;    // 记录的大小
 
     Record(RmRecord rmrecord) {
-        data = new char();
         size = rmrecord.size;
+        data = new char[size];
+        
         std::memcpy(data,rmrecord.data,size);
         
     }
@@ -45,6 +46,7 @@ struct Record {
     bool operator!=(const Record& other) const {
         return !(*this == other);
     }
+
 };
 class AggregateExecutor : public AbstractExecutor {
    private:
@@ -223,9 +225,9 @@ class AggregateExecutor : public AbstractExecutor {
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
                         if(!cur_rec){
-                            prev_ -> nextTuple();
-                            continue;
-                        }
+                                prev_ -> nextTuple();
+                                continue;
+                            }
                         if(type == TYPE_INT){
                             int cur_int = *(int*)((cur_rec -> data) + cols_[current].offset); //取出所要列的值
                             tempset.insert(cur_int);
@@ -248,8 +250,11 @@ class AggregateExecutor : public AbstractExecutor {
                     std::set<Record> countallset;
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
-                        Record *rec=new Record(*cur_rec.get());
-                        countallset.insert(*rec);
+                        if(!cur_rec){
+                                prev_ -> nextTuple();
+                                continue;
+                            }
+                        countallset.insert((Record(*cur_rec.get())));                        
                         prev_ -> nextTuple(); 
                     }
                     temp = countallset.size();
