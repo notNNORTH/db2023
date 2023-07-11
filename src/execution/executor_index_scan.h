@@ -223,6 +223,12 @@ class IndexScanExecutor : public AbstractExecutor {
         upper.page_no=static_cast<int>(end->get_page_no());
         upper.slot_no=end->upper_bound(key_upper);
 
+        if (upper.page_no!= ix_handle->get_filehdr()->last_leaf_ && upper.slot_no == end->get_size()) {
+        // go to next leaf
+        upper.slot_no = 0;
+        upper.page_no = end->get_next_leaf();
+        }
+
         sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
         sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
         
