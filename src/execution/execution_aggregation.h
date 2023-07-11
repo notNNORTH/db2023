@@ -246,8 +246,9 @@ class AggregateExecutor : public AbstractExecutor {
                     prev_ -> beginTuple();              
                     break;
                     } 
-                case(TYPE_COUNTALL):{                                       
-                    std::set<Record> countallset;
+                case(TYPE_COUNTALL):{
+                    //处理不相等的tuple数量                                       
+                    /*std::set<Record> countallset;
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
                         if(!cur_rec){
@@ -259,7 +260,16 @@ class AggregateExecutor : public AbstractExecutor {
                     }
                     temp = countallset.size();
                     prev_ -> beginTuple();
-                    break;
+                    break;*/
+                    while(!prev_ -> is_end()){
+                        std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
+                        if(!cur_rec){
+                                prev_ -> nextTuple();
+                                continue;
+                            }
+                        temp++;                       
+                        prev_ -> nextTuple(); 
+                    }
                 }
             }
             if(!(aops[current] == TYPE_COUNT || aops[current] == TYPE_COUNTALL)){
