@@ -97,13 +97,19 @@ page_id_t IxNodeHandle::internal_lookup(const char *key) {
     // 1. 查找当前非叶子节点中目标key所在孩子节点（子树）的位置
     // 2. 获取该孩子节点（子树）所在页面的编号
     // 3. 返回页面编号
+
     if(page_hdr->num_key==0){
         return value_at(0);
     }
 
-    int child_idx = upper_bound(key)-1;  // 查找目标key所在孩子节点（子树）的位置
-    page_id_t child_page_id = value_at(child_idx);  // 获取该孩子节点（子树）所在页面的编号
-    return child_page_id;
+    int first_gt_idx=upper_bound(key);
+    if(first_gt_idx==0){
+        return value_at(0);
+    }else if(0<first_gt_idx<get_size()){
+        return value_at(first_gt_idx-1);
+    }else if(first_gt_idx==get_size()){
+        return value_at(get_size()-1);
+    }
 }
 
 /**
@@ -274,16 +280,9 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
     // 2. 从根节点开始不断向下查找目标key
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
 
-    
-    bool is_locked=true;
-
-    
-
     // 1. 获取根节点
     IxNodeHandle *root_handle = fetch_node(file_hdr_->root_page_);
     
-
-    // 访问根节点的代码
     // 2. 从根节点开始不断向下查找目标key
     IxNodeHandle *curr_handle = root_handle;
     while (!curr_handle->is_leaf_page()) {
@@ -291,9 +290,9 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
         page_id_t child_page_num;
 
         if (find_first)
-            child_page_num = curr_handle->value_at(0);
+            {child_page_num = curr_handle->value_at(0);}
         else
-            child_page_num = curr_handle->internal_lookup(key);
+            {child_page_num = curr_handle->internal_lookup(key);}
 
         // 加载子节点
         IxNodeHandle *child_handle = fetch_node(child_page_num);
@@ -309,14 +308,12 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
         page_id_t next_leaf_page=curr_handle->get_next_leaf();
         IxNodeHandle *next_leaf=fetch_node(next_leaf_page);
         buffer_pool_manager_->unpin_page(curr_handle->get_page_id(),false);
-        //delete curr_handle;
+        delete curr_handle;
         curr_handle = next_leaf;
     }
 
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
-    is_locked=false;
-    return std::make_pair(curr_handle, is_locked);
-
+    return std::make_pair(curr_handle, false);
 }
 
 /**

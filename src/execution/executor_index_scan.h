@@ -229,6 +229,11 @@ class IndexScanExecutor : public AbstractExecutor {
         upper.page_no = end->get_next_leaf();
         }
 
+        if (lower.slot_no == end->get_size()) {
+        // keep valid slot
+        lower.slot_no = end->get_size()-1;
+        }
+
         sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
         sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
         
