@@ -219,8 +219,9 @@ class AggregateExecutor : public AbstractExecutor {
                         prev_ -> beginTuple();
                         break;     
                 }
-                case(TYPE_COUNT):{                   
-                    std::set<double> tempset;
+                case(TYPE_COUNT):{
+                    //处理不相等的tuple数量                   
+                    /*std::set<double> tempset;
                     std::set<std::string> tempsetstr;
                     while(!prev_ -> is_end()){
                         std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
@@ -244,6 +245,16 @@ class AggregateExecutor : public AbstractExecutor {
                     }
                     temp = tempset.size()+tempsetstr.size();//一个为0,一个为所求,和为所求 
                     prev_ -> beginTuple();              
+                    break;*/
+                    while(!prev_ -> is_end()){
+                        std::unique_ptr<RmRecord> cur_rec = prev_ -> Next();
+                        if(!cur_rec){
+                                prev_ -> nextTuple();
+                                continue;
+                            }
+                        temp++;                       
+                        prev_ -> nextTuple(); 
+                    }
                     break;
                     } 
                 case(TYPE_COUNTALL):{
@@ -270,6 +281,7 @@ class AggregateExecutor : public AbstractExecutor {
                         temp++;                       
                         prev_ -> nextTuple(); 
                     }
+                    break;
                 }
             }
             if(!(aops[current] == TYPE_COUNT || aops[current] == TYPE_COUNTALL)){
