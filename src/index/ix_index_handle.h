@@ -73,6 +73,7 @@ class IxNodeHandle {
         keys = page->get_data() + sizeof(IxPageHdr);
         rids = reinterpret_cast<Rid *>(keys + file_hdr->keys_size_);
     }
+    const IxFileHdr *get_file_hdr(){return file_hdr;}
 
     int get_size() const{ return page_hdr->num_key; }
 

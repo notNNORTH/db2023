@@ -214,31 +214,50 @@ class IndexScanExecutor : public AbstractExecutor {
 
         auto begin=(ix_handle->find_leaf_page(key_lower,Operation::FIND,nullptr)).first;
         auto end=(ix_handle->find_leaf_page(key_upper,Operation::FIND,nullptr)).first;
-
-        Iid lower=Iid();
-        lower.page_no=static_cast<int>(begin->get_page_no());
-        lower.slot_no=begin->lower_bound(key_lower);
-
-        Iid upper=Iid();
-        upper.page_no=static_cast<int>(end->get_page_no());
-        upper.slot_no=end->upper_bound(key_upper);
-
-        if (upper.page_no!= ix_handle->get_filehdr()->last_leaf_ && upper.slot_no == end->get_size()) {
-        // go to next leaf
-        upper.slot_no = 0;
-        upper.page_no = end->get_next_leaf();
-        }
-
-        if (lower.slot_no == end->get_size()) {
-        // keep valid slot
-        lower.slot_no = end->get_size()-1;
-        }
-
-        sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
-        sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
         
-        scan_ = std::make_unique<IxScan>(ix_handle,lower,upper,sm_manager_->get_bpm());
-        rid_=scan_->rid();
+        if(ix_compare(key_lower,key_upper,begin->get_file_hdr()->col_types_,begin->get_file_hdr()->col_lens_)>0){
+            sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
+
+            Iid lower=Iid();
+            lower.page_no=static_cast<int>(begin->get_page_no());
+            lower.slot_no=begin->lower_bound(key_lower);
+
+            if (lower.slot_no == end->get_size()) {
+                // keep valid slot
+                lower.slot_no = end->get_size()-1;
+            }
+
+            sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
+            scan_ = std::make_unique<IxScan>(ix_handle,lower,lower,sm_manager_->get_bpm());
+            rid_=scan_->rid();
+
+        }else{
+            Iid lower=Iid();
+            lower.page_no=static_cast<int>(begin->get_page_no());
+            lower.slot_no=begin->lower_bound(key_lower);
+
+            Iid upper=Iid();
+            upper.page_no=static_cast<int>(end->get_page_no());
+            upper.slot_no=end->upper_bound(key_upper);
+
+            if (upper.page_no!= ix_handle->get_filehdr()->last_leaf_ && upper.slot_no == end->get_size()) {
+                // go to next leaf
+                upper.slot_no = 0;
+                upper.page_no = end->get_next_leaf();
+            }
+
+            if (lower.slot_no == end->get_size()) {
+                // keep valid slot
+                lower.slot_no = end->get_size()-1;
+            }
+
+            sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
+            sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
+        
+            scan_ = std::make_unique<IxScan>(ix_handle,lower,upper,sm_manager_->get_bpm());
+            rid_=scan_->rid();
+
+        }
     }
 
     void nextTuple() override {
