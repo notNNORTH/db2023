@@ -66,6 +66,40 @@ class IndexScanExecutor : public AbstractExecutor {
         fed_conds_ = conds_;
         auto ix_name=sm_manager_->get_ix_manager()->get_index_name(tab_name_,index_col_names_);
         ix_handle=(sm_manager_->ihs_[ix_name]).get();
+
+        //初始化条件语句中所有用到列的列的元数据信息
+        int con_size=fed_conds_.size();
+        for (int loop=0;loop<con_size;loop++) {
+            auto temp_con=fed_conds_[loop];
+
+            // 检查左操作数是否为列操作数
+            if (!temp_con.lhs_col.tab_name.empty() && !temp_con.lhs_col.col_name.empty()) {
+                // 查找colmeta
+                auto tabname_in_con_left=temp_con.lhs_col.tab_name;
+                auto colname_in_con_left=temp_con.lhs_col.col_name;
+                int size=tab_.cols.size();
+                for(int i=0;i<size;i++){//后续join也可能改tab，加入多表内容
+                    if((tabname_in_con_left==tab_.cols[i].tab_name)&&(colname_in_con_left==tab_.cols[i].name)){
+                        auto temp=tab_.cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+            }
+            // 检查右操作数是否为列操作数
+            if (!temp_con.is_rhs_val && !temp_con.rhs_col.tab_name.empty() && !temp_con.rhs_col.col_name.empty()) {
+                // 查找colmeta
+                auto tabname_in_con_right=temp_con.rhs_col.tab_name;
+                auto colname_in_con_right=temp_con.rhs_col.col_name;
+                int size=tab_.cols.size();
+                for(int i=0;i<size;i++){//后续join也可能改tab，加入多表内容
+                    if((tabname_in_con_right==tab_.cols[i].tab_name)&&(colname_in_con_right==tab_.cols[i].name)){
+                        auto temp=tab_.cols[i];
+                        cols_check_.push_back(temp);
+                    }
+                }
+            }
+        }
+
     }
 
     void beginTuple() override {
@@ -81,11 +115,32 @@ class IndexScanExecutor : public AbstractExecutor {
 
         int key_offset=0;
 
-        for(int i=0;i<fed_conds_.size();i++){
-            auto this_cond=fed_conds_[i];
+        //分离出索引内列cond
+        bool continue_to_find=true;
+        int match_col_in_cond=0;
+        int match_col_in_idx=0;
+        std::vector<Condition> in_idx_conds_;
+        
+        while(continue_to_find){
+            int match_count=0;
+            while(fed_conds_[match_col_in_cond].lhs_col.col_name==index_col_names_[match_col_in_idx]){
+                in_idx_conds_.push_back(fed_conds_[match_col_in_cond]);
+                match_col_in_cond++;
+                match_count++;
+            }
+            if(match_count>0){
+                match_col_in_idx++;
+                continue;
+            }else{
+                continue_to_find=false;
+            }
+        }
+
+        for(int i=0;i<in_idx_conds_.size();i++){
+            auto this_cond=in_idx_conds_[i];
             Condition next_cond;
-            if(i!=fed_conds_.size()-1){
-                next_cond=fed_conds_[i+1];
+            if(i!=in_idx_conds_.size()-1){
+                next_cond=in_idx_conds_[i+1];
             }else{
                 next_cond=this_cond;
             }
@@ -96,12 +151,6 @@ class IndexScanExecutor : public AbstractExecutor {
             int min_int=std::numeric_limits<int>::min();
             double max_flt=std::numeric_limits<double>::max();
             double min_flt=std::numeric_limits<double>::min();
-
-            auto it=std::find(index_col_names_.begin(),index_col_names_.end(),this_cond.lhs_col.col_name);
-            int j=std::distance(index_col_names_.begin(),it);
-            cols_check_.push_back(*(index_meta_.cols.begin()+j));
-
-            
             
 
             if(this_cond.op==OP_EQ){
@@ -214,7 +263,7 @@ class IndexScanExecutor : public AbstractExecutor {
 
         auto begin=(ix_handle->find_leaf_page(key_lower,Operation::FIND,nullptr)).first;
         auto end=(ix_handle->find_leaf_page(key_upper,Operation::FIND,nullptr)).first;
-        
+
         if(ix_compare(key_lower,key_upper,begin->get_file_hdr()->col_types_,begin->get_file_hdr()->col_lens_)>0){
             sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
 
