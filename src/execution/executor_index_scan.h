@@ -110,8 +110,39 @@ class IndexScanExecutor : public AbstractExecutor {
         int key_size=index_meta_.col_tot_len;
         char* key_lower = new char[key_size];
         char* key_upper = new char[key_size];
-        memset(key_lower,0,key_size);
-        memset(key_upper,0,key_size);
+
+        int max_int=std::numeric_limits<int>::max();
+        int min_int=std::numeric_limits<int>::min();
+        double max_flt=std::numeric_limits<double>::max();
+        double min_flt=std::numeric_limits<double>::min();
+
+        //初始化最大与最小缓冲区
+        int ofst=0;
+        for(auto idx_col:index_meta_.cols){
+            switch (idx_col.type)
+            {
+            case TYPE_INT:
+                memcpy(key_lower + ofst, &min_int, idx_col.len);
+                memcpy(key_upper + ofst, &max_int, idx_col.len);
+                ofst+=idx_col.len;
+                break;
+            case TYPE_FLOAT:
+                memcpy(key_lower + ofst, &min_flt, idx_col.len);
+                memcpy(key_upper + ofst, &max_flt, idx_col.len);
+                ofst+=idx_col.len;
+                break;
+            case TYPE_STRING:
+                char* min_str = new char[idx_col.len];
+                memset(min_str,0,idx_col.len);
+                char* max_str = new char[idx_col.len];
+                memset(max_str,255,idx_col.len);
+                memcpy(key_lower + ofst, min_str, idx_col.len);
+                memcpy(key_upper + ofst, max_str, idx_col.len);
+                ofst+=idx_col.len;
+                break;
+            }
+        }
+
 
         int key_offset=0;
 
@@ -146,12 +177,6 @@ class IndexScanExecutor : public AbstractExecutor {
             }
             const void* col_value_lower;
             const void* col_value_upper;
-
-            int max_int=std::numeric_limits<int>::max();
-            int min_int=std::numeric_limits<int>::min();
-            double max_flt=std::numeric_limits<double>::max();
-            double min_flt=std::numeric_limits<double>::min();
-            
 
             if(this_cond.op==OP_EQ){
                 if(this_cond.rhs_val.type==TYPE_INT){
