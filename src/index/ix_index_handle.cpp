@@ -134,25 +134,21 @@ void IxNodeHandle::insert_pairs(int pos, const char *key, const Rid *rid, int n)
     // 4. 更新当前节点的键数量
 
     // 1. 判断pos的合法性
-    if (pos < 0 || pos >= (get_max_size()-1)) {
-        // 位置pos不合法，抛出异常或返回错误
-        return;
-    }
+    assert(pos <= get_size() && pos >= 0);
     
-    // 2. 通过key获取n个连续键值对的key值，并把n个key值插入到pos位置
-    for (int i = 0; i < n; i++) {
-        key=key+i*file_hdr->col_tot_len_;
-        set_key(pos+i,key);
-    }
-    
-    // 3. 通过rid获取n个连续键值对的rid值，并把n个rid值插入到pos位置
-    for (int i = 0; i < n; i++) {
-        set_rid(pos+i,rid[i]);
-    }
-    
-    // 4. 更新当前节点的键数量
-    set_size(get_size()+n);
+    int tail_num = page_hdr->num_key - pos;
+    int key_len = file_hdr->col_tot_len_;
+    int rid_len = sizeof(Rid);
 
+    char *dest_pos1 = get_key(pos);
+    memmove(dest_pos1 + n * key_len, dest_pos1, tail_num * key_len);
+    memcpy(dest_pos1, key, n * key_len);
+
+    Rid *dest_pos2 = get_rid(pos);
+    memmove(dest_pos2 + n, dest_pos2, tail_num * rid_len);
+    memcpy(dest_pos2, rid, n * rid_len);
+
+    set_size(get_size() + n);
 }
 
 /**
@@ -591,17 +587,11 @@ bool IxIndexHandle::coalesce_or_redistribute(IxNodeHandle *node, Transaction *tr
             return false;
         }else{//需要执行合并或重分配操作 
             //获取node结点的父亲结点
-            auto parent_node=fetch_node(node->get_page_no());
+            auto parent_node=fetch_node(node->get_parent_page_no());
             //寻找node结点的兄弟结点（优先选取前驱结点）
             IxNodeHandle* brother_node;
 
-            int idx=-1;
-            for(int i=0;i<parent_node->get_size();i++){
-                if((ix_compare(node->get_key(0),parent_node->get_key(i),node->file_hdr->col_types_, node->file_hdr->col_lens_))==0){
-                    idx=i;
-                    break;
-                }
-            }
+            int idx=parent_node->find_child(node);
 
             if(idx!=0){
                 brother_node=fetch_node(parent_node->value_at(idx-1));
