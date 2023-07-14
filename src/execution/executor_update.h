@@ -83,6 +83,19 @@ class UpdateExecutor : public AbstractExecutor {
 
             // 2.通过记录ID使用文件处理器（fh_）获取该记录的内容（RmRecord对象）
             RmRecord rec = *fh_->get_record(rid, context_);
+            RmRecord old_rec=rec;
+
+            for(size_t i = 0; i < tab_.indexes.size(); ++i) {
+                auto& index = tab_.indexes[i];
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+                char key[index.col_tot_len];
+                int offset = 0;
+                for(size_t i = 0; i < index.col_num; ++i) {
+                    memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
+                    offset += index.cols[i].len;
+                }
+                ih->delete_entry(key, nullptr);
+            }
 
             // 3.判断 WHERE 后面的condition
             bool do_update = true;
@@ -141,21 +154,42 @@ class UpdateExecutor : public AbstractExecutor {
             // 5.使用文件处理器（fh_）将更新后的记录写回到文件中
             fh_->update_record(rid, rec.data, context_);
 
-            // 6.针对表中的每个索引，更新相应的索引条目     //////////////////////////////////////////////////////////
-            for (const auto& index : tab_.indexes) {
-                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                char* key = new char[index.col_tot_len];
-                int offset = 0;
-
-                for (size_t i = 0; i < index.col_num; ++i) {
-                    memcpy(key + offset, rec.data + index.cols[i].offset, index.cols[i].len);
-                    offset += index.cols[i].len;
+            try {
+                // 将rid插入在内存中更新后的新的record的cols对应key的index
+                for(size_t i = 0; i < tab_.indexes.size(); ++i) {
+                    auto& index = tab_.indexes[i];
+                    auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+                    char key[index.col_tot_len];
+                    int offset = 0;
+                    for(size_t i = 0; i < index.col_num; ++i) {
+                        memcpy(key + offset, rec.data + index.cols[i].offset, index.cols[i].len);
+                        offset += index.cols[i].len;
+                    }
+                    ih->insert_entry(key,rid,nullptr);
+                }
+            }catch(InternalError &error) {
+                // 1. 恢复record
+                fh_->update_record(rid, old_rec.data, context_);
+                // 恢复索引
+                // 2. 恢复所有的index
+                for(size_t i = 0; i < tab_.indexes.size(); ++i) {
+                    auto& index = tab_.indexes[i];
+                    auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+                    char key[index.col_tot_len];
+                    int offset = 0;
+                    for(size_t i = 0; i < index.col_num; ++i) {
+                        memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
+                        offset += index.cols[i].len;
+                    }
+                    ih->insert_entry(key, rid, context_->txn_);
                 }
 
-                // ih->update_entry(key, rid, context_->txn_); /////////////////////////////haven't done//////////////////////////
+                // 3. 继续抛出异常
+                throw InternalError("Non-unique index!");
             }
+
+
         }
-        //////////////////////////////////////// return std::make_unique<RmRecord>(std::move(rec));
         return nullptr;
     }
         

@@ -81,6 +81,19 @@ class DeleteExecutor : public AbstractExecutor {
             // 2.通过记录ID使用文件处理器（fh_）获取该记录的内容（RmRecord对象）
             RmRecord rec = *fh_->get_record(rid, context_);
 
+            for(int i = 0; i < tab_.indexes.size(); ++i) {
+                auto& it_index = tab_.indexes[i];
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, it_index.cols)).get();
+                char key[it_index.col_tot_len];
+                int offset = 0;
+                for(int i = 0; i < it_index.col_num; ++i) {
+                    memcpy(key + offset, rec.data + it_index.cols[i].offset, it_index.cols[i].len);
+                    offset += it_index.cols[i].len;
+                }
+                ih->delete_entry(key, context_->txn_);
+            }
+
+
             // 3.判断 WHERE 后面的condition
             bool do_update = true;
             for (Condition &cond : conds_){

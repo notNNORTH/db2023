@@ -215,7 +215,7 @@ void IxNodeHandle::erase_pair(int pos) {
 
     // 2. 删除该位置的rid
     for (int i = pos; i < page_hdr->num_key-1; i++) {
-        set_rid(i,*get_rid(i+1));
+        set_rid(i,*(get_rid(i+1)));
     }
 
     // 3. 更新结点的键值对数量
@@ -229,18 +229,12 @@ void IxNodeHandle::erase_pair(int pos) {
  * @return 完成删除操作后的键值对数量
  */
 int IxNodeHandle::remove(const char *key) {
-    // Todo:
     // 1. 查找要删除键值对的位置
-    // 2. 如果要删除的键值对存在，删除键值对
-    // 3. 返回完成删除操作后的键值对数量
-
-    // 1. 查找要删除键值对的位置
-    int pos = upper_bound(key)-1;
+    int pos = lower_bound(key);
 
     // 2. 如果要删除的键值对存在，删除键值对
     if (pos < page_hdr->num_key && ix_compare(get_key(pos), key, file_hdr->col_types_, file_hdr->col_lens_) == 0) {
         erase_pair(pos);
-        page_hdr->num_key--;
         return page_hdr->num_key;
     }
 
@@ -304,7 +298,7 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
     bool last=(curr_handle->lower_bound(key)>curr_handle->get_size()-1)&&
                 (curr_handle->get_page_no()!=curr_handle->file_hdr->last_leaf_);
 
-    if(operation==Operation::FIND&&last){
+    if(((operation==Operation::FIND)||(operation==Operation::DELETE))&&last){
         page_id_t next_leaf_page=curr_handle->get_next_leaf();
         IxNodeHandle *next_leaf=fetch_node(next_leaf_page);
         buffer_pool_manager_->unpin_page(curr_handle->get_page_id(),false);
@@ -337,19 +331,20 @@ bool IxIndexHandle::get_value(const char *key, std::vector<Rid> *result, Transac
     bool root_is_latched = leaf_pair.second;
 
     // 2. 在叶子节点中查找目标key值的位置，并读取key对应的rid
-    Rid ** temp;
-    leaf_node->leaf_lookup(key,temp);
-    result->push_back(**temp);
+    Rid** temp;
+    bool res=leaf_node->leaf_lookup(key,temp);
 
-    // 3. 解锁根节点（如果加锁了）并释放叶子节点的资源
-    //if (root_is_latched) {
-        //root_latch_.unlock();
-    //}
+    if(res){
+        result->push_back(**temp);
+        buffer_pool_manager_->unpin_page(leaf_node->get_page_id(), false);
+        delete leaf_node;
+        return true;
+    }
 
-    buffer_pool_manager_->unpin_page({fd_,leaf_node->get_page_no()}, false);
+    buffer_pool_manager_->unpin_page(leaf_node->get_page_id(), false);
     delete leaf_node;
 
-    return !result->empty();
+    return false;
 }
 
 /**
@@ -492,6 +487,15 @@ page_id_t IxIndexHandle::insert_entry(const char *key, const Rid &value, Transac
     IxNodeHandle *leaf_node = leaf_info.first;
     bool root_latched = leaf_info.second;
 
+    //进行索引一致性检查
+    bool already_exist=false;
+    int check_idx = leaf_node->lower_bound(key);
+    if((ix_compare(key,leaf_node->get_key(check_idx),leaf_node->file_hdr->col_types_, leaf_node->file_hdr->col_lens_))==0){
+        already_exist=true;
+    }
+    if(already_exist){
+        throw InternalError("Non-unique index!");
+    }
     // 2. 在该叶子节点中插入键值对
     bool insert_success = leaf_node->insert(key, value);
 
@@ -531,7 +535,25 @@ bool IxIndexHandle::delete_entry(const char *key, Transaction *transaction) {
     // 3. 如果删除成功需要调用CoalesceOrRedistribute来进行合并或重分配操作，并根据函数返回结果判断是否有结点需要删除
     // 4. 如果需要并发，并且需要删除叶子结点，则需要在事务的delete_page_set中添加删除结点的对应页面；记得处理并发的上锁
 
-    return false;
+    // 1. 获取该键值对所在的叶子结点
+    std::pair<IxNodeHandle *, bool> leaf_pair_to_delete = find_leaf_page(key, Operation::DELETE, transaction);
+    auto leaf_to_delete=leaf_pair_to_delete.first;
+
+    //是否删除成功的判断条件
+    int key_num_before_delete=leaf_to_delete->get_size();
+    int key_num_after_delete=leaf_to_delete->remove(key);
+
+    if(key_num_before_delete==key_num_after_delete){
+        buffer_pool_manager_->unpin_page(leaf_to_delete->get_page_id(),false);
+        delete leaf_to_delete;
+        return false;
+    }else{
+        //如果删除成功需要调用CoalesceOrRedistribute来进行合并或重分配操作，并根据函数返回结果判断是否有结点需要删除
+        coalesce_or_redistribute(leaf_to_delete,nullptr,nullptr);
+        buffer_pool_manager_->unpin_page(leaf_to_delete->get_page_id(),true);
+        delete leaf_to_delete;
+        return true;
+    }
 }
 
 /**
@@ -548,15 +570,56 @@ bool IxIndexHandle::delete_entry(const char *key, Transaction *transaction) {
 bool IxIndexHandle::coalesce_or_redistribute(IxNodeHandle *node, Transaction *transaction, bool *root_is_latched) {
     // Todo:
     // 1. 判断node结点是否为根节点
-    //    1.1 如果是根节点，需要调用AdjustRoot() 函数来进行处理，返回根节点是否需要被删除
-    //    1.2 如果不是根节点，并且不需要执行合并或重分配操作，则直接返回false，否则执行2
-    // 2. 获取node结点的父亲结点
-    // 3. 寻找node结点的兄弟结点（优先选取前驱结点）
-    // 4. 如果node结点和兄弟结点的键值对数量之和，能够支撑两个B+树结点（即node.size+neighbor.size >=
-    // NodeMinSize*2)，则只需要重新分配键值对（调用Redistribute函数）
-    // 5. 如果不满足上述条件，则需要合并两个结点，将右边的结点合并到左边的结点（调用Coalesce函数）
+    if(node->is_root_page()){
+        //    1.1 如果是根节点，需要调用AdjustRoot() 函数来进行处理，返回根节点是否需要被删除
+        return adjust_root(node);
+    }else{
+        //    1.2 如果不是根节点，并且不需要执行合并或重分配操作，则直接返回false，否则执行2
+        if(node->get_size()>=node->get_min_size()){
+            maintain_parent(node);
+            return false;
+        }else{//需要执行合并或重分配操作 
+            //获取node结点的父亲结点
+            auto parent_node=fetch_node(node->get_page_no());
+            //寻找node结点的兄弟结点（优先选取前驱结点）
+            IxNodeHandle* brother_node;
 
-    return false;
+            int idx=-1;
+            for(int i=0;i<parent_node->get_size();i++){
+                if((ix_compare(node->get_key(0),parent_node->get_key(i),node->file_hdr->col_types_, node->file_hdr->col_lens_))==0){
+                    idx=i;
+                    break;
+                }
+            }
+
+            if(idx!=0){
+                brother_node=fetch_node(parent_node->value_at(idx-1));
+            }else{
+                brother_node=fetch_node(parent_node->value_at(1));
+            }
+
+            //If sibling's size + input page's size >= 2 * page's minsize, then redistribute.
+            //key数大于下界，无需合并，仅仅进行重分配
+            if(node->get_size()+brother_node->get_size()>=node->get_min_size()*2){
+                redistribute(brother_node,node,parent_node,idx);
+                buffer_pool_manager_->unpin_page(parent_node->get_page_id(),true);
+                buffer_pool_manager_->unpin_page(brother_node->get_page_id(),true);
+
+                delete parent_node;
+                delete brother_node;
+                return false;
+            //如果不满足上述条件，则需要合并两个结点，将右边的结点合并到左边的结点（调用Coalesce函数）
+            }else{
+                coalesce(&brother_node,&node,&parent_node,idx,transaction,root_is_latched);
+                buffer_pool_manager_->unpin_page(parent_node->get_page_id(),true);
+                buffer_pool_manager_->unpin_page(brother_node->get_page_id(),true);
+
+                delete parent_node;
+                delete brother_node;
+                return true;
+            }
+        }
+    }
 }
 
 /**
@@ -566,11 +629,25 @@ bool IxIndexHandle::coalesce_or_redistribute(IxNodeHandle *node, Transaction *tr
  * @note size of root page can be less than min size and this method is only called within coalesce_or_redistribute()
  */
 bool IxIndexHandle::adjust_root(IxNodeHandle *old_root_node) {
-    // Todo:
-    // 1. 如果old_root_node是内部结点，并且大小为1，则直接把它的孩子更新成新的根结点
-    // 2. 如果old_root_node是叶结点，且大小为0，则直接更新root page
-    // 3. 除了上述两种情况，不需要进行操作
+    //如果old_root_node是内部结点，并且大小为1，则直接把它的孩子更新成新的根结点
+    if(!old_root_node->is_leaf_page() && old_root_node->get_size() == 1){
+        IxNodeHandle* new_root_node = fetch_node(old_root_node->value_at(0));
+        new_root_node->set_parent_page_no(INVALID_PAGE_ID);
 
+        file_hdr_->root_page_ = new_root_node->get_page_no();
+        buffer_pool_manager_->unpin_page(new_root_node->get_page_id(),true);
+        release_node_handle(*old_root_node);
+        
+        delete new_root_node;
+        return true;
+    }
+    //如果old_root_node是叶结点，且大小为0，则直接更新root page
+    if(old_root_node->is_leaf_page() && old_root_node->get_size() == 0){
+        release_node_handle(*old_root_node);
+        file_hdr_->root_page_ = INVALID_PAGE_ID;
+        return true;
+    }
+    //除了上述两种情况，不需要进行操作
     return false;
 }
 
@@ -594,6 +671,23 @@ void IxIndexHandle::redistribute(IxNodeHandle *neighbor_node, IxNodeHandle *node
     // 2. 从neighbor_node中移动一个键值对到node结点中
     // 3. 更新父节点中的相关信息，并且修改移动键值对对应孩字结点的父结点信息（maintain_child函数）
     // 注意：neighbor_node的位置不同，需要移动的键值对不同，需要分类讨论
+    if(index!=0){
+        //neighbor_node是node的前驱结点
+        //从neighbor_node中移动一个键值对到node结点中
+        int move_pre_node_idx = neighbor_node->get_size() - 1;
+        node->insert_pair(0,neighbor_node->get_key(move_pre_node_idx),*neighbor_node->get_rid(move_pre_node_idx));
+        neighbor_node->erase_pair(move_pre_node_idx);
+        
+        //更新父节点中的相关信息，并且修改移动键值对对应孩字结点的父结点信息（maintain_child函数）
+        maintain_child(node,node->get_size() - 1);
+        maintain_parent(node);
+    }else{
+        //后继节点
+        node->insert_pair(node->get_size(),neighbor_node->get_key(0),*neighbor_node->get_rid(0));
+        neighbor_node->erase_pair(0);
+        maintain_parent(neighbor_node);
+        maintain_child(node,node->get_size()-1);
+    }
 }
 
 /**
@@ -618,7 +712,36 @@ bool IxIndexHandle::coalesce(IxNodeHandle **neighbor_node, IxNodeHandle **node, 
     // 3. 释放和删除node结点，并删除parent中node结点的信息，返回parent是否需要被删除
     // 提示：如果是叶子结点且为最右叶子结点，需要更新file_hdr_.last_leaf
 
-    return false;
+    //不是node的前驱结点，交换两个结点，让neighbor_node作为左结点，node作为右结点
+    if(index == 0){
+        IxNodeHandle **tmp = node;
+        node = neighbor_node;
+        neighbor_node = tmp;
+        index++;
+    }
+
+    //把node结点的键值对移动到neighbor_node中
+    int pre_node_size = (*neighbor_node)->get_size();
+    (*neighbor_node)->insert_pairs(pre_node_size,(*node)->get_key(0),(*node)->get_rid(0),(*node)->get_size());
+    int after_node_size = (*neighbor_node)->get_size();
+
+    //更新node结点孩子结点的父节点信息（调用maintain_child函数）
+    for(int i = pre_node_size;i< after_node_size;++i){
+        maintain_child(*neighbor_node,i);
+    }
+
+    //如果是叶子结点且为最右叶子结点，需要更新file_hdr_.last_leaf
+    if((*node)->get_page_no() == file_hdr_->last_leaf_){
+        file_hdr_->last_leaf_ = (*neighbor_node)->get_page_no();
+    }
+
+    //释放和删除node结点，并删除parent中node结点的信息，返回parent是否需要被删除
+    erase_leaf(*node);
+    release_node_handle(**node);
+    (*parent)->erase_pair(index);
+
+    return coalesce_or_redistribute(*parent,transaction,root_is_latched);
+
 }
 
 /**
