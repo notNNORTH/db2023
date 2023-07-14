@@ -209,12 +209,12 @@ void IxNodeHandle::erase_pair(int pos) {
     // 3. 更新结点的键值对数量
     
     // 1. 删除该位置的key
-    for (int i = pos; i < page_hdr->num_key-1; i++) {
+    for (int i = pos; i < page_hdr->num_key; i++) {
         set_key(i,get_key(i+1));
     }
 
     // 2. 删除该位置的rid
-    for (int i = pos; i < page_hdr->num_key-1; i++) {
+    for (int i = pos; i < page_hdr->num_key; i++) {
         set_rid(i,*(get_rid(i+1)));
     }
 
@@ -483,9 +483,20 @@ page_id_t IxIndexHandle::insert_entry(const char *key, const Rid &value, Transac
     // 提示：记得unpin page；若当前叶子节点是最右叶子节点，则需要更新file_hdr_.last_leaf；记得处理并发的上锁
 
     // 1. 查找key值应该插入到哪个叶子节点
-    std::pair<IxNodeHandle *, bool> leaf_info = find_leaf_page(key, Operation::INSERT, transaction);
+    std::pair<IxNodeHandle *, bool> leaf_info;
+    if(file_hdr_->num_pages_==2){
+        auto create_root_node=create_node();
+        create_root_node->page_hdr->parent=INVALID_PAGE_ID;
+        file_hdr_->root_page_=create_root_node->get_page_no();
+        create_root_node->page_hdr->is_leaf=true;
+        leaf_info=std::make_pair(create_root_node,false);
+    }else{
+        leaf_info = find_leaf_page(key, Operation::INSERT, transaction);
+    }
+    
     IxNodeHandle *leaf_node = leaf_info.first;
     bool root_latched = leaf_info.second;
+    
 
     //进行索引一致性检查
     bool already_exist=false;

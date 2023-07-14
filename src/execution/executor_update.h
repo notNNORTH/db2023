@@ -85,12 +85,11 @@ class UpdateExecutor : public AbstractExecutor {
             RmRecord rec = *fh_->get_record(rid, context_);
             RmRecord old_rec=rec;
 
-            for(size_t i = 0; i < tab_.indexes.size(); ++i) {
-                auto& index = tab_.indexes[i];
+            for(auto& index:tab_.indexes) {
                 auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
                 char key[index.col_tot_len];
                 int offset = 0;
-                for(size_t i = 0; i < index.col_num; ++i) {
+                for(int i = 0; i < index.col_num; i++) {
                     memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
                     offset += index.cols[i].len;
                 }
@@ -172,12 +171,11 @@ class UpdateExecutor : public AbstractExecutor {
                 fh_->update_record(rid, old_rec.data, context_);
                 // 恢复索引
                 // 2. 恢复所有的index
-                for(size_t i = 0; i < tab_.indexes.size(); ++i) {
-                    auto& index = tab_.indexes[i];
+                for(auto& index:tab_.indexes) {
                     auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
                     char key[index.col_tot_len];
                     int offset = 0;
-                    for(size_t i = 0; i < index.col_num; ++i) {
+                    for(int i = 0; i < index.col_num; i++) {
                         memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
                         offset += index.cols[i].len;
                     }
@@ -185,7 +183,7 @@ class UpdateExecutor : public AbstractExecutor {
                 }
 
                 // 3. 继续抛出异常
-                throw InternalError("Non-unique index!");
+                throw InternalError("item already exits!");
             }
 
 
