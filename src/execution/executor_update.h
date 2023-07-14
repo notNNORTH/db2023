@@ -129,6 +129,10 @@ class UpdateExecutor : public AbstractExecutor {
                     int value = val.bigint_val.value;
                     val.set_int(value);
                 }
+                else if (col.type == TYPE_STRING && val.type == TYPE_DATETIME){
+                    std::string str_val = val.datetime_val.get_datetime();
+                    val.set_str(str_val);
+                }
                 else if (col.type != val.type) {
                     throw IncompatibleTypeError(coltype2str(col.type), coltype2str(val.type));
                 }

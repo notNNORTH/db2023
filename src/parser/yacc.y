@@ -21,8 +21,8 @@ using namespace ast;
 %define parse.error verbose
 
 // keywords
-%token SHOW TABLES CREATE TABLE DROP DESC INSERT INTO VALUES DELETE FROM ASC ORDER BY
-WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_COMMIT TXN_ABORT TXN_ROLLBACK ORDER_BY BIGINT AS SUM MAX MIN COUNT 
+%token SHOW TABLES CREATE TABLE DROP DESC INSERT INTO VALUES DELETE FROM ASC ORDER BY LIMIT
+WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_COMMIT TXN_ABORT TXN_ROLLBACK ORDER_BY BIGINT DATETIME AS SUM MAX MIN COUNT
 // non-keywords
 %token LEQ NEQ GEQ T_EOF
 
@@ -31,6 +31,7 @@ WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_CO
 %token <sv_int> VALUE_INT
 %token <sv_float> VALUE_FLOAT
 %token <sv_bigint> VALUE_BIGINT
+%token <sv_datetime> VALUE_DATETIME
 
 // specify types for non-terminal symbol
 %type <sv_node> stmt dbStmt ddl dml txnStmt
@@ -49,11 +50,13 @@ WHERE UPDATE SET SELECT INT CHAR FLOAT INDEX AND JOIN EXIT HELP TXN_BEGIN TXN_CO
 %type <sv_set_clauses> setClauses
 %type <sv_cond> condition
 %type <sv_conds> whereClause optWhereClause
-%type <sv_orderby>  order_clause opt_order_clause
+%type <sv_orderby>  order_clause
+%type <sv_orderbys>  opt_order_clause order_clauses
 %type <sv_orderby_dir> opt_asc_desc
 %type <sv_aggregatesym> aggregatesym
 %type <sv_aggregate> aggregate
 %type <sv_aggregates> aggregates
+%type <sv_limit> opt_limit
 
 %%
 start:
@@ -148,9 +151,9 @@ dml:
     {
         $$ = std::make_shared<UpdateStmt>($2, $4, $5);
     }
-    |   SELECT selector FROM tableList optWhereClause opt_order_clause
+    |   SELECT selector FROM tableList optWhereClause opt_order_clause opt_limit
     {
-        $$ = std::make_shared<SelectStmt>($2, $4, $5, $6);
+        $$ = std::make_shared<SelectStmt>($2, $4, $5, $6, $7);
     }
     |   SELECT aggregates FROM tableList optWhereClause opt_order_clause
     {
@@ -204,6 +207,10 @@ type:
     {
         $$ = std::make_shared<TypeLen>(SV_TYPE_BIGINT, sizeof(BigInt));
     }
+    |   DATETIME
+    {
+        $$ = std::make_shared<TypeLen>(SV_TYPE_DATETIME, sizeof(DateTime));     // DATETIME类型大小为8字节 --by 星穹铁道高手
+    }
     ;
 
 valueList:
@@ -233,6 +240,10 @@ value:
     |   VALUE_BIGINT
     {
         $$ = std::make_shared<BigIntLit>($1);
+    }
+    |   VALUE_DATETIME
+    {
+        $$ = std::make_shared<DateTimeLit>($1);
     }
     ;
 
@@ -364,12 +375,24 @@ tableList:
     ;
 
 opt_order_clause:
-    ORDER BY order_clause      
+    ORDER BY order_clauses
     { 
         $$ = $3; 
     }
     |   /* epsilon */ { /* ignore*/ }
     ;
+
+order_clauses:
+        order_clause 
+    { 
+        $$ = std::vector<std::shared_ptr<OrderBy>>{$1};
+    }
+    |
+        order_clauses ',' order_clause 
+    { 
+        $$.push_back($3);
+    }
+    ; 
 
 order_clause:
       col  opt_asc_desc 
@@ -382,7 +405,18 @@ opt_asc_desc:
     ASC          { $$ = OrderBy_ASC;     }
     |  DESC      { $$ = OrderBy_DESC;    }
     |       { $$ = OrderBy_DEFAULT; }
-    ;    
+    ;
+
+opt_limit:
+    LIMIT VALUE_INT
+    {
+        $$ = $2;
+    }
+    |
+    {
+        $$ = -1;
+    }
+    ;
 
 aggregatesym:
     SUM            { $$ = TYPE_SUM;  }
@@ -418,3 +452,4 @@ tbName: IDENTIFIER;
 
 colName: IDENTIFIER;
 %%
+

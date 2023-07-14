@@ -64,12 +64,6 @@ public:
 
     std::unique_ptr<RmRecord> Next() override
     {
-
-        /*if (curr_record_)
-        {
-            return std::move(curr_record_);
-        }*/
-
         std::unique_ptr<RmRecord> record = prev_->Next();
 
         if (record)

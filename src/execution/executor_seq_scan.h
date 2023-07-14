@@ -226,5 +226,18 @@ class SeqScanExecutor : public AbstractExecutor {
         return nullptr;
     }
 
+    ColMeta get_col_offset(const TabCol& target) override {
+        const std::vector<ColMeta>& rec_cols = cols();
+        auto pos = std::find_if(rec_cols.begin(), rec_cols.end(), [&](const ColMeta& col) {
+            return col.tab_name == target.tab_name && col.name == target.col_name;
+        });
+
+        if (pos == rec_cols.end()) {
+            throw ColumnNotFoundError(target.tab_name + '.' + target.col_name);
+        }
+
+        return *pos;
+    }
+
     Rid &rid() override { return rid_; }
 };

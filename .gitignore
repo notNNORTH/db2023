@@ -3,3 +3,7 @@
 build
 rmdb_client/build
 test
+src/parser/lex.yy.cpp
+src/parser/yacc.tab.h
+src/parser/yacc.tab.cpp
+test_delete

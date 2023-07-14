@@ -21,7 +21,7 @@ enum JoinType {
 namespace ast {
 
 enum SvType {
-    SV_TYPE_INT, SV_TYPE_FLOAT, SV_TYPE_STRING,SV_TYPE_BIGINT
+    SV_TYPE_INT, SV_TYPE_FLOAT, SV_TYPE_STRING, SV_TYPE_BIGINT, SV_TYPE_DATETIME
 };
 
 enum SvCompOp {
@@ -146,6 +146,12 @@ struct BigIntLit : public Value {
     BigIntLit(BigInt val_) : val(val_) {}
 };
 
+struct DateTimeLit : public Value {
+    DateTime val;
+
+    DateTimeLit(DateTime val_) : val(val_) {}
+};
+
 struct Col : public Expr {
     std::string tab_name;
     std::string col_name;
@@ -229,8 +235,8 @@ struct JoinExpr : public TreeNode {
 };
 
 struct SelectStmt : public TreeNode {
-    std::vector<std::shared_ptr<Col>> cols;
-    std::vector<std::string> tabs;
+    std::vector<std::shared_ptr<Col>> cols;     // SELECT的列
+    std::vector<std::string> tabs;      // FROM的table
     std::vector<std::shared_ptr<BinaryExpr>> conds;
     std::vector<std::shared_ptr<JoinExpr>> jointree;
     //rz-dev
@@ -238,24 +244,26 @@ struct SelectStmt : public TreeNode {
     std::vector<std::string> colouts;
 
     
-    bool has_sort;
-    std::shared_ptr<OrderBy> order;
+    bool has_sort;;
     bool is_aggregate;
+    int limit;
+    std::vector<std::shared_ptr<OrderBy>> order;
+
 
     SelectStmt(std::vector<std::shared_ptr<Col>> cols_,
                std::vector<std::string> tabs_,
                std::vector<std::shared_ptr<BinaryExpr>> conds_,
-               std::shared_ptr<OrderBy> order_) :
-            cols(std::move(cols_)), tabs(std::move(tabs_)), conds(std::move(conds_)), 
+               std::vector<std::shared_ptr<OrderBy>> order_, int limit_) :
+            limit(std::move(limit_)), cols(std::move(cols_)), tabs(std::move(tabs_)), conds(std::move(conds_)), 
             order(std::move(order_)) {
-                has_sort = (bool)order;
+                has_sort = (!order.empty());
                 is_aggregate = false;
             }
     //rz-dev
     SelectStmt(std::vector<std::shared_ptr<Aggregate>> aggregates_,
                std::vector<std::string> tabs_,
                std::vector<std::shared_ptr<BinaryExpr>> conds_,
-               std::shared_ptr<OrderBy> order_) :
+               std::vector<std::shared_ptr<OrderBy>> order_) :
             tabs(std::move(tabs_)), conds(std::move(conds_)), 
             order(std::move(order_)) {
                 for(auto aggregate : aggregates_){
@@ -263,7 +271,7 @@ struct SelectStmt : public TreeNode {
                     aops.push_back(aggregate -> aop);
                     colouts.push_back(aggregate -> colname);
                 }
-                has_sort = (bool)order;
+                has_sort = (!order.empty());
                 is_aggregate = true;
             }
 };
@@ -290,6 +298,7 @@ struct AggregateStmt : public TreeNode {
             aop(std::move(aop_)),colin(std::move(colin_)), colout(std::move(colout_)), tabs(std::move(tabs_)), conds(std::move(conds_)), 
             order(std::move(order_)) {
                 has_sort = (bool)order;
+                
             }
 };
 
@@ -301,6 +310,7 @@ struct SemValue {
     
     std::string sv_str;
     BigInt sv_bigint;       // by 星穹铁道高手
+    DateTime sv_datetime;   // by 星穹铁道高手
 
     OrderByDir sv_orderby_dir;
     std::vector<std::string> sv_strs;
@@ -333,6 +343,8 @@ struct SemValue {
     AggregateOp sv_aggregatesym;
     std::shared_ptr<Aggregate> sv_aggregate;
     std::vector<std::shared_ptr<Aggregate>> sv_aggregates;
+    std::vector<std::shared_ptr<OrderBy>> sv_orderbys;
+    int sv_limit;
 };
 
 extern std::shared_ptr<ast::TreeNode> parse_tree;
@@ -340,3 +352,4 @@ extern std::shared_ptr<ast::TreeNode> parse_tree;
 }
 
 #define YYSTYPE ast::SemValue
+
