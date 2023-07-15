@@ -48,7 +48,7 @@ public:
         limit_ = limit;
 
         // 初始化缓冲区和输出缓冲区
-        buffer_max_size_ = 100;  // 缓冲区大小为5000
+        buffer_max_size_ = 50;  // 缓冲区大小为5000
         buffers_.clear();
         buffer_size_ = 0;
 
