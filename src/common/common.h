@@ -108,6 +108,12 @@ struct SetClause {
     Value rhs;
 };
 
+//与ast.h中要保持相同
+//rz-dev
+enum AggreOp {
+    NONE_AGGREGATE,TYPE_SUM, TYPE_MAX, TYPE_MIN, TYPE_COUNT ,TYPE_COUNTALL
+};
+
 class ConditionEvaluator {
 public:
     bool evaluate(Condition& condition, std::vector<ColMeta>& cols, RmRecord& record) {

@@ -30,14 +30,31 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
                 throw TableNotFoundError(tab);
             }
         }
+        
+        std::vector<TabCol> colsout;//aggregate输出名称 rz-dev
 
         // 插入属性
         // 处理target list，再target list中添加上表名，例如 a.id
-        int col_size = x->cols.size();
-        for (int i = 0; i < col_size; i++){
-            auto sv_sel_col = x->cols[i];
-            TabCol sel_col = {.tab_name = sv_sel_col->tab_name, .col_name = sv_sel_col->col_name};
-            query->cols.push_back(sel_col);
+        if(!x->is_aggregate){
+            int col_size = x->cols.size();
+            for (int i = 0; i < col_size; i++){
+                auto sv_sel_col = x->cols[i];
+                TabCol sel_col = {.tab_name = sv_sel_col->tab_name, .col_name = sv_sel_col->col_name};
+                query->cols.push_back(sel_col);
+            }
+        }
+        //rz-dev
+        
+        else{
+            int col_size = x->cols.size();
+            for (int i = 0; i < col_size; i++){
+                auto sv_sel_col = x->cols[i];
+                TabCol sel_col_out = {.tab_name = sv_sel_col->tab_name, .col_name = x->colouts[i]};
+                TabCol sel_col_in = {.tab_name = sv_sel_col->tab_name, .col_name = sv_sel_col->col_name};
+                query->cols.push_back(sel_col_in);//to do
+                colsout.push_back(sel_col_out);
+                query->colsin.push_back(sel_col_in);
+            }
         }
         
         std::vector<ColMeta> all_cols;
@@ -48,7 +65,14 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
                 TabCol sel_col = {.tab_name = col.tab_name, .col_name = col.name};
                 query->cols.push_back(sel_col);
             }
-        } else {
+        } else if (x->is_aggregate)
+        {//rz-dev
+            for (auto &sel_col : query->cols) {
+
+                if(sel_col.col_name != "*")sel_col = check_column(all_cols, sel_col);  // 列元数据校验
+            }
+        }
+        else{
             // infer table name from column name
             for (auto &sel_col : query->cols) {
                 sel_col = check_column(all_cols, sel_col);  // 列元数据校验
@@ -57,6 +81,18 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         //处理where条件
         get_clause(x->conds, query->conds);
         check_clause(query->tables, query->conds);
+
+        //rz-dev 
+        //加上aops 和 colnames
+        //query -> isaggregate = false;
+
+        if(x -> is_aggregate){
+            for (auto aop:x -> aops) query -> aops.push_back(AggreOp(aop));
+            query -> colouts = x -> colouts;
+            //query -> isaggregate = true;
+            query -> cols = colsout;
+        }
+
 
     } else if (auto x = std::dynamic_pointer_cast<ast::UpdateStmt>(parse)) {
         /** TODO: */
@@ -106,7 +142,34 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
             query->values.push_back(convert_sv_value(sv_val));
         }
 
-    } else {
+    }
+    //rz-dev to delete
+    // else if (auto x = std::dynamic_pointer_cast<ast::AggregateStmt>(parse))
+    // {
+    //     // 处理表名
+    //     query->tables = std::move(x->tabs);
+    //     /** TODO: 检查表是否存在 */
+    //     int table_size = query->tables.size();
+    //     for (int i = 0; i < table_size; i++){
+    //         auto tab = query->tables[i];
+    //         if (!sm_manager_->db_.is_table(tab)){
+    //             throw TableNotFoundError(tab);
+    //         }
+    //     }
+
+    //     // 插入属性
+    //     // 处理target list，再target list中添加上表名，例如 a.id
+    //     TabCol sel_col = {.tab_name = x->colin->tab_name, .col_name = x->colin->col_name};
+    //     query->cols.push_back(sel_col);
+    //     query -> aop = AggreOp(x -> aop);
+    //     TabCol sel_col_out = {.tab_name = x->colout->tab_name, .col_name = x->colout->col_name};
+    //     query -> colout = sel_col_out;
+    //     //处理where条件
+    //     get_clause(x->conds, query->conds);
+    //     check_clause(query->tables, query->conds);
+    // }
+    
+    else {
         // do nothing
     }
     query->parse = std::move(parse);

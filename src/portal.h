@@ -23,6 +23,7 @@ See the Mulan PSL v2 for more details. */
 #include "execution/executor_insert.h"
 #include "execution/executor_delete.h"
 #include "execution/execution_sort.h"
+#include "execution/execution_aggregation.h"
 #include "common/common.h"
 
 typedef enum portalTag{
@@ -173,6 +174,11 @@ class Portal
         } else if(auto x = std::dynamic_pointer_cast<SortPlan>(plan)) {
             return std::make_unique<SortExecutor>(convert_plan_executor(x->subplan_, context), 
                                             x->sel_cols_, x->is_desc_, x->limit_);
+        }else if(auto x = std::dynamic_pointer_cast<AggregatePlan>(plan)){
+            std::unique_ptr<AggregateExecutor> aggre = std::make_unique<AggregateExecutor>(convert_plan_executor(x->subplan_, context),
+                            x->aops_,x->all_cols,x->colsin);
+            return aggre;
+                                            
         }
         return nullptr;
     }
