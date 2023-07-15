@@ -205,14 +205,13 @@ void IxNodeHandle::erase_pair(int pos) {
     // 3. 更新结点的键值对数量
     
     // 1. 删除该位置的key
-    for (int i = pos; i < page_hdr->num_key; i++) {
-        set_key(i,get_key(i+1));
-    }
+    int num=page_hdr->num_key-pos-1;
+    memset(get_key(pos),0,file_hdr->col_tot_len_);
+    memmove(get_key(pos),get_key(pos)+file_hdr->col_tot_len_,num*file_hdr->col_tot_len_);
 
     // 2. 删除该位置的rid
-    for (int i = pos; i < page_hdr->num_key; i++) {
-        set_rid(i,*(get_rid(i+1)));
-    }
+    memset(get_rid(pos),0,sizeof(Rid));
+    memmove(get_rid(pos),get_rid(pos)+1,num*sizeof(Rid));
 
     // 3. 更新结点的键值对数量
     page_hdr->num_key--;
@@ -373,6 +372,8 @@ IxNodeHandle *IxIndexHandle::split(IxNodeHandle *node) {
         new_node->set_key(i,node->get_key(split_pos+i));
         new_node->set_rid(i,*(node->get_rid(split_pos+i)));
     }
+    memset(node->get_key(split_pos),0,new_node->get_size()*file_hdr_->col_tot_len_);
+    memset(node->get_rid(split_pos),0,new_node->get_size()*sizeof(Rid));
 
     // 3.更新page handle中的相关信息
     new_node->page_hdr->is_leaf=node->is_leaf_page();
