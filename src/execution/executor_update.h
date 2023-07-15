@@ -85,17 +85,6 @@ class UpdateExecutor : public AbstractExecutor {
             RmRecord rec = *fh_->get_record(rid, context_);
             RmRecord old_rec=rec;
 
-            for(auto& index:tab_.indexes) {
-                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                char key[index.col_tot_len];
-                int offset = 0;
-                for(int i = 0; i < index.col_num; i++) {
-                    memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
-                    offset += index.cols[i].len;
-                }
-                ih->delete_entry(key, nullptr);
-            }
-
             // 3.判断 WHERE 后面的condition
             bool do_update = true;
             for (Condition &cond : conds_){
@@ -108,6 +97,16 @@ class UpdateExecutor : public AbstractExecutor {
             }
             if(!do_update){continue;}
 
+            for(auto& index:tab_.indexes) {
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+                char key[index.col_tot_len];
+                int offset = 0;
+                for(int i = 0; i < index.col_num; i++) {
+                    memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
+                    offset += index.cols[i].len;
+                }
+                ih->delete_entry(key, nullptr);
+            }
 
             // 4.根据set_clauses_中的设定，更新记录的对应字段
             for (const auto& set_clause : set_clauses_) {

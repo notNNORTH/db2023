@@ -484,6 +484,8 @@ page_id_t IxIndexHandle::insert_entry(const char *key, const Rid &value, Transac
         auto create_root_node=create_node();
         create_root_node->page_hdr->parent=INVALID_PAGE_ID;
         file_hdr_->root_page_=create_root_node->get_page_no();
+        file_hdr_->first_leaf_=create_root_node->get_page_no();
+        file_hdr_->last_leaf_=create_root_node->get_page_no();
         create_root_node->page_hdr->is_leaf=true;
         leaf_info=std::make_pair(create_root_node,false);
     }else{
@@ -636,6 +638,8 @@ bool IxIndexHandle::adjust_root(IxNodeHandle *old_root_node) {
         new_root_node->set_parent_page_no(INVALID_PAGE_ID);
 
         file_hdr_->root_page_ = new_root_node->get_page_no();
+        file_hdr_->first_leaf_=new_root_node->get_page_no();
+        file_hdr_->last_leaf_=new_root_node->get_page_no();
         buffer_pool_manager_->unpin_page(new_root_node->get_page_id(),true);
         release_node_handle(*old_root_node);
         
