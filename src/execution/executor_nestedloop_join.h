@@ -25,7 +25,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     std::vector<Condition> fed_conds_;          // join条件
     bool isend;
 
-    // std::vector<Condition> fed_conds_;  // 同conds_，两个字段相同--by 星穹铁道高手
+
     std::vector<ColMeta> cols_check_;   // 条件语句中所有用到列的列的元数据信息--by 星穹铁道高手
 
     int block_size;         // 内存缓冲区的大小     --by 星穹铁道高手
@@ -222,6 +222,8 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
                 memcpy(data, left_data, left_->tupleLen());
                 memcpy(data + left_->tupleLen(), right_data, right_->tupleLen());
                 std::unique_ptr<RmRecord> result_record = std::make_unique<RmRecord>(len_, data);
+
+                delete[] data;
 
                 return result_record;
             }
