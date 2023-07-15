@@ -20,6 +20,8 @@ See the Mulan PSL v2 for more details. */
 #include "system/sm.h"
 #include "common/common.h"
 
+
+
 class Query{
     public:
     std::shared_ptr<ast::TreeNode> parse;
@@ -35,6 +37,11 @@ class Query{
     //insert 的values值
     std::vector<Value> values;
 
+    //rz-dev
+    std::vector<AggreOp> aops ;
+    std::vector<std::string> colouts;//输出列名
+    std::vector<TabCol> colsin;//输入列名
+    //bool isaggregate;
     Query(){}
 
 };

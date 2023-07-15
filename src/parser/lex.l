@@ -94,6 +94,11 @@ value_datetime  '{digit}+\-{digit}+\-{digit}+\ {digit}+\:{digit}+\:{digit}\+'
 "LIMIT" { return LIMIT; }
 
 "BIGINT" { return BIGINT;}
+"AS" { return AS;}
+"SUM" { return SUM;}
+"MIN" { return MIN;}
+"MAX" { return MAX;}
+"COUNT" { return COUNT;}
 "DATETIME" { return DATETIME;}
     /* operators */
 ">=" { return GEQ; }

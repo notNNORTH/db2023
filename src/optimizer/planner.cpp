@@ -133,7 +133,10 @@ std::shared_ptr<Plan> Planner::physical_optimization(std::shared_ptr<Query> quer
 
     // 处理orderby
     plan = generate_sort_plan(query, std::move(plan)); 
-
+    
+    //rz-dev
+    plan = generate_aggregate_plan(query,std::move(plan));
+    
     return plan;
 }
 
@@ -280,7 +283,47 @@ std::shared_ptr<Plan> Planner::generate_sort_plan(std::shared_ptr<Query> query, 
 
     return std::make_shared<SortPlan>(T_Sort, std::move(plan), sel_cols, is_desc, x->limit);
 }
-
+//rz-dev
+std::shared_ptr<Plan> Planner::generate_aggregate_plan(std::shared_ptr<Query> query, std::shared_ptr<Plan> plan){
+    auto x = std::dynamic_pointer_cast<ast::SelectStmt>(query->parse);
+    if(!x->is_aggregate) {
+        return plan;
+    }
+    std::vector<std::string> tables = query->tables;
+    std::vector<ColMeta> all_cols;
+    std::vector<TabCol> colins;
+    int cur = 0;//指向当前处理的colsin的位置
+    for (auto col : query -> colsin) {
+        if(col.tab_name != ""){
+            ColMeta allcol = *((sm_manager_->db_.get_table(col.tab_name)).get_col(col.col_name)).base();
+            allcol.name = query -> colouts[cur];
+            all_cols.push_back(allcol);
+            colins.push_back(col);
+        }else{
+            if(col.col_name == "*"){
+                ColMeta allcol = *new ColMeta();
+                allcol.name = query -> colouts[cur] ;
+                all_cols.push_back(allcol);
+                colins.push_back(col);
+            }else{
+                for (auto &sel_tab_name : tables) {
+                    TabMeta tabmeta = sm_manager_->db_.get_table(sel_tab_name);
+                    if(tabmeta.is_col(col.col_name)){
+                        ColMeta allcol = *tabmeta.get_col(col.col_name).base(); //找到第一个表中的col如果有重名应该会有表名输入
+                        allcol.name = query -> colouts[cur];
+                        all_cols.push_back(allcol);
+                        TabCol colin = *new TabCol();
+                        colin.tab_name = allcol.tab_name;
+                        colin.col_name = col.col_name;
+                        colins.push_back(colin);
+                    }
+                } 
+            }
+        }
+        cur++;
+    }
+    return std::make_shared<AggregatePlan>(T_Aggregate, std::move(plan),query -> aops,query -> colouts, all_cols,colins);
+}
 
 /**
  * @brief select plan 生成
@@ -296,6 +339,15 @@ std::shared_ptr<Plan> Planner::generate_select_plan(std::shared_ptr<Query> query
     //物理优化
     auto sel_cols = query->cols;
     std::shared_ptr<Plan> plannerRoot = physical_optimization(query, context);
+    //rz-dev
+    //判断子节点是否为aggregation，如果是修改sel_cols值为aggregatin中的值
+    if(auto x = std::dynamic_pointer_cast<AggregatePlan>(plannerRoot)){
+        for (int i = 0; i < sel_cols.size(); i++)
+        {
+           sel_cols[i].tab_name = x->all_cols[i].tab_name;
+        }
+         
+    }
     plannerRoot = std::make_shared<ProjectionPlan>(T_Projection, std::move(plannerRoot), 
                                                         std::move(sel_cols));
 
@@ -380,7 +432,17 @@ std::shared_ptr<Plan> Planner::do_planner(std::shared_ptr<Query> query, Context 
         std::shared_ptr<Plan> projection = generate_select_plan(std::move(query), context);
         plannerRoot = std::make_shared<DMLPlan>(T_select, projection, std::string(), std::vector<Value>(),
                                                     std::vector<Condition>(), std::vector<SetClause>());
-    } else {
+    } 
+    //rz-dev to delete
+    /*else if (auto x = std::dynamic_pointer_cast<ast::AggregateStmt>(query->parse)) {
+
+        std::shared_ptr<plannerInfo> root = std::make_shared<plannerInfo>(x);
+        // 生成select语句的查询执行计划
+        std::shared_ptr<Plan> projection = generate_select_plan(std::move(query), context);
+        plannerRoot = std::make_shared<DMLPlan>(T_select, projection, std::string(), std::vector<Value>(),
+                                                    std::vector<Condition>(), std::vector<SetClause>());
+    }*/
+    else {
         throw InternalError("Unexpected AST root");
     }
     return plannerRoot;
