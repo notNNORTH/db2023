@@ -377,7 +377,10 @@ class IndexScanExecutor : public AbstractExecutor {
         return cols_;
     }
 
-    Rid &rid() override { return rid_; }
+    Rid &rid() override { 
+        rid_=scan_->rid();
+        return  rid_;
+    }
 
 
 };
