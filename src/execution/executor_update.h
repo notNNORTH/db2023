@@ -178,7 +178,7 @@ class UpdateExecutor : public AbstractExecutor {
                         memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
                         offset += index.cols[i].len;
                     }
-                    ih->insert_entry(key, rid, context_->txn_);
+                    ih->insert_entry(key, rid, nullptr);
                 }
 
                 // 3. 继续抛出异常
