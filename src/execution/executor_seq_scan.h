@@ -221,7 +221,7 @@ class SeqScanExecutor : public AbstractExecutor {
                 }
             }
             if (!add){continue;}
-            return record_for_check;
+            return std::move(record_for_check);
         }
         return nullptr;
     }
