@@ -25,11 +25,10 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     std::vector<Condition> fed_conds_;          // join条件
     bool isend;
 
-
     std::vector<ColMeta> cols_check_;   // 条件语句中所有用到列的列的元数据信息--by 星穹铁道高手
 
     int block_size;         // 内存缓冲区的大小     --by 星穹铁道高手
-    std::vector<RmRecord> buffer;    // 内存缓冲区  --by 星穹铁道高手
+    std::vector<RmRecord> buffer;    // 内存缓冲区 --by 星穹铁道高手
     int left_tuple_index;   // 现在在buffer中的位置 --by 星穹铁道高手
     bool is_last_block;     // 是否为最后一个块     --by 星穹铁道高手
     std::unique_ptr<RmRecord> right_record; // 当前右边的块         --by 星穹铁道高手
@@ -112,11 +111,6 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     }
 
     void beginTuple() override {
-        // 这里是可以跑的join（单元组）
-        // left_->beginTuple();
-        // right_->beginTuple();
-        // isend = (left_->is_end() && right_->is_end());  // 支持与空表做join
-
         /*  嵌套循环连接算法（Block Nested-Loop-Join） */
         set_buffer(true);
         right_->beginTuple();
@@ -126,23 +120,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
     }
 
     void nextTuple() override {
-        /*  这里是可以跑的join（单元组）
         //对每个左节点遍历右节点,
-        if (! right_->is_end()){   // 右边不是最后一个节点，直接取下一个即可
-            right_ -> nextTuple();
-
-            // 判断当前是不是最后一个
-            if (right_->is_end()){
-                right_->beginTuple();
-                left_->nextTuple();
-            }
-        }
-        if(left_ -> is_end()){
-            isend = true;           
-        }
-        */
-        //对每个左节点遍历右节点,
-
         left_tuple_index++;
 
         if (left_tuple_index < buffer.size()){
@@ -179,7 +157,6 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         set_buffer(false);
         right_->beginTuple();
         right_record = right_->Next();
-        // isend = (left_->is_end() && right_->is_end() && left_tuple_index == buffer.size());
     }
 
     std::unique_ptr<RmRecord> Next() override {
@@ -188,13 +165,7 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         if (buffer.size() == 0){ return nullptr; }
         
         // 构造新的记录并返回
-        for(; !isend; nextTuple())
-        {
-            // std::unique_ptr<RmRecord> left_record = left_->Next();
-            // std::unique_ptr<RmRecord> right_record = right_->Next();
-
-            // auto left_record = left_->get_fh()->get_record(left_->rid(), nullptr);
-            // auto right_record = right_->get_fh()->get_record(right_->rid(), nullptr);
+        for(; !isend; nextTuple()){
             auto left_record = buffer[left_tuple_index];
             
             if (&left_record == nullptr || right_record == nullptr){
@@ -213,17 +184,10 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
             }
 
             if(ret){
-                char* left_data = left_record.data;
-                char* right_data = right_record->data;
+                std::unique_ptr<RmRecord> result_record = std::make_unique<RmRecord>(len_);
 
-                // 将左右记录的数据拷贝到新的记录中
-                char* data = new char[len_];
-
-                memcpy(data, left_data, left_->tupleLen());
-                memcpy(data + left_->tupleLen(), right_data, right_->tupleLen());
-                std::unique_ptr<RmRecord> result_record = std::make_unique<RmRecord>(len_, data);
-
-                delete[] data;
+                memcpy(result_record->data, left_record.data, left_->tupleLen());
+                memcpy(result_record->data + left_->tupleLen(), right_record->data, right_->tupleLen());
 
                 return result_record;
             }
@@ -242,11 +206,11 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
             // left_->nextTuple();
         }
 
-        for (; !left_->is_end() && buffer.size() < block_size; left_->nextTuple()){
+        for (; !left_->is_end() && buffer.size() < block_size; left_->nextTuple()) {
             auto left_record = left_->Next();
-            if (left_record){
-                buffer.push_back(*left_record);
-            }else{
+            if (left_record) {
+                buffer.emplace_back(std::move(*left_record));
+            } else {
                 break;
             }
         }
@@ -273,5 +237,9 @@ class NestedLoopJoinExecutor : public AbstractExecutor {
         }
 
         return *pos;
+    }
+
+    ~NestedLoopJoinExecutor() override {
+        buffer.clear();
     }
 };

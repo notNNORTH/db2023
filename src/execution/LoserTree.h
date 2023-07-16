@@ -130,10 +130,11 @@ public:
         input_file.seekg(file_count_[index] * record_size_); // 设置读取位置为 begin
         input_file.read(data, record_size_);
         file_count_[index]++;
-        record->data = data;
+        record->data = std::move(data);
         record->size = record_size_;
 
-        return *record;
+
+        return std::move(*record);
     }
 
     bool is_tuple_less(const RmRecord& record1, const RmRecord& record2,

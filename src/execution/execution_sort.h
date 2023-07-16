@@ -48,7 +48,7 @@ public:
         limit_ = limit;
 
         // 初始化缓冲区和输出缓冲区
-        buffer_max_size_ = 20;  // 缓冲区大小为5000
+        buffer_max_size_ = 2000;  // 缓冲区大小为5000
         buffers_.clear();
         buffer_size_ = 0;
 
@@ -80,22 +80,25 @@ public:
                 record_size = record->size;
                 set_record_size = false;
             }
-            buffers_.push_back(*record);
+            buffers_.push_back(std::move(*record));
             buffer_size_++;
 
             if (buffer_size_ >= buffer_max_size_) {
                 // 当前缓冲区已满，进行排序
+                /*
                 std::vector<std::vector<Value>> order_by_col;
                 order_by_col.resize(buffer_max_size_);
                 for (int i = 0; i < buffer_max_size_; i++) {
                     std::vector<Value> order_by_cols_row;
                     for (int j = 0; j < cols_.size(); j++) {
                         Value value = get_col_value(buffers_[i], cols_[j]);
-                        order_by_cols_row.push_back(value);
+                        order_by_cols_row.push_back(std::move(value));
                     }
-                    order_by_col[i] = order_by_cols_row;
-                }
-                quicksort(buffers_, order_by_col, 0, buffer_max_size_ - 1);
+                    order_by_col[i] = std::move(order_by_cols_row);
+                }*/
+                //quicksort(buffers_, order_by_col, 0, buffer_max_size_ - 1);
+                //bubbleSort(buffers_, order_by_col);
+                mySort(buffers_);
 
                 // 将排序后的元组写入临时文件
                 std::string temp_file = temp_file_name_ + std::to_string(buffer_index);
@@ -117,17 +120,20 @@ public:
         // 处理最后一个缓冲区中的元组
         if (buffer_size_ > 0) {
             // 进行排序
+            /*
             std::vector<std::vector<Value>> order_by_col;
             order_by_col.resize(buffer_size_);
             for (int i = 0; i < buffer_size_; i++) {
                 std::vector<Value> order_by_cols_row;
                 for (int j = 0; j < cols_.size(); j++) {
                     Value value = get_col_value(buffers_[i], cols_[j]);
-                    order_by_cols_row.push_back(value);
+                    order_by_cols_row.push_back(std::move(value));
                 }
-                order_by_col[i] = order_by_cols_row;
-            }
-            quicksort(buffers_, order_by_col, 0, buffer_size_ - 1);
+                order_by_col[i] = std::move(order_by_cols_row);
+            }*/
+            //quicksort(buffers_, order_by_col, 0, buffer_size_ - 1);
+            //bubbleSort(buffers_, order_by_col);
+            mySort(buffers_);
 
             // 将排序后的元组写入临时文件
             std::string temp_file = temp_file_name_ + std::to_string(buffer_index);
@@ -170,6 +176,39 @@ public:
         return (tuple_num == 0) || (limit_ == 0);
     }
 
+    void mySort(std::vector<RmRecord>& records){
+        std::sort(records.begin(), records.end(), [this](RmRecord& record1, RmRecord& record2) {
+            return compare(record1, record2);
+        });
+    }
+
+    bool compare(RmRecord& record1, RmRecord& record2){
+        std::vector<Value> left_cols_row;
+        std::vector<Value> right_cols_row;
+        for (int j = 0; j < cols_.size(); j++) {
+            Value value1 = get_col_value(record1, cols_[j]);
+            left_cols_row.push_back(std::move(value1));
+
+            Value value2 = get_col_value(record2, cols_[j]);
+            right_cols_row.push_back(std::move(value2));
+        }
+        
+        return is_tuple_less(record1, record2, left_cols_row, right_cols_row);
+    }
+
+    // 冒泡排序算法
+    void bubbleSort(std::vector<RmRecord>& records, std::vector<std::vector<Value>>& order_cols) {
+        int n = records.size();
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (is_tuple_less(records[j], records[j + 1], order_cols[j], order_cols[j + 1])) {
+                    // std::swap(records[j], records[j + 1]);
+                    // std::swap(order_cols[j], order_cols[j + 1]);
+                }
+            }
+        }
+    }
+
     // 快速排序算法
     void quicksort(std::vector<RmRecord>& records, std::vector<std::vector<Value>>& order_cols, int low, int high) {
         if (low < high) {
@@ -185,12 +224,30 @@ public:
         for (int j = low; j < high; j++) {
             if (is_tuple_less(records[j], records[high], order_cols[j], pivot_cols)) {
                 i++;
-                std::swap(records[i], records[j]);
-                std::swap(order_cols[i], order_cols[j]);
+                // 手动交换 records[i] 和 records[j] 的值
+/*                RmRecord* temp_record = new RmRecord(std::move(records[i]));
+                records[i] = std::move(records[j]);
+                records[j] = std::move(*temp_record);
+                delete temp_record;
+
+                // 手动交换 order_cols[i] 和 order_cols[j] 的值
+                std::vector<Value>* temp_order_cols = new std::vector<Value>(std::move(order_cols[i]));
+                order_cols[i] = std::move(order_cols[j]);
+                order_cols[j] = std::move(*temp_order_cols);
+                delete temp_order_cols;*/
             }
         }
-        std::swap(records[i + 1], records[high]);
-        std::swap(order_cols[i + 1], order_cols[high]);
+        // 手动交换 records[i + 1] 和 records[high] 的值
+/*        RmRecord* temp_record = new RmRecord(std::move(records[i + 1]));
+        records[i + 1] = std::move(records[high]);
+        records[high] = std::move(*temp_record);
+        delete temp_record;
+
+        // 手动交换 order_cols[i + 1] 和 order_cols[high] 的值
+        std::vector<Value>* temp_order_cols = new std::vector<Value>(std::move(order_cols[i + 1]));
+        order_cols[i + 1] = std::move(order_cols[high]);
+        order_cols[high] = std::move(*temp_order_cols);
+        delete temp_order_cols;*/
         return i + 1;
     }
 
