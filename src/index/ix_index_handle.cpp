@@ -326,17 +326,20 @@ bool IxIndexHandle::get_value(const char *key, std::vector<Rid> *result, Transac
     bool root_is_latched = leaf_pair.second;
 
     // 2. 在叶子节点中查找目标key值的位置，并读取key对应的rid
-    Rid** temp;
+    Rid** temp = new Rid*;
+    *temp = nullptr;
     bool res=leaf_node->leaf_lookup(key,temp);
 
     if(res){
         result->push_back(**temp);
         buffer_pool_manager_->unpin_page(leaf_node->get_page_id(), false);
         delete leaf_node;
+        delete temp;
         return true;
     }
 
     buffer_pool_manager_->unpin_page(leaf_node->get_page_id(), false);
+    delete temp;
     delete leaf_node;
 
     return false;

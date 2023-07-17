@@ -139,6 +139,8 @@ class IndexScanExecutor : public AbstractExecutor {
                 memcpy(key_lower + ofst, min_str, idx_col.len);
                 memcpy(key_upper + ofst, max_str, idx_col.len);
                 ofst+=idx_col.len;
+                delete min_str;
+                delete max_str;
                 break;
             }
         }
@@ -238,6 +240,7 @@ class IndexScanExecutor : public AbstractExecutor {
                     memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
                     memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
                     key_offset+=index_meta_.cols[j].len;
+                    delete temp_str;
                     continue;
                 }
             }else if(this_cond.op==OP_LE||this_cond.op==OP_LT){
@@ -281,6 +284,7 @@ class IndexScanExecutor : public AbstractExecutor {
                     memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
                     memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
                     key_offset+=index_meta_.cols[j].len;
+                    delete temp_str;
                     continue;
                 }
             }
@@ -335,7 +339,9 @@ class IndexScanExecutor : public AbstractExecutor {
         }else{
             Iid no_node=Iid{0,0};
             scan_ = std::make_unique<IxScan>(ix_handle,no_node,no_node,sm_manager_->get_bpm());
-        }        
+        }
+        delete key_lower;
+        delete key_upper;        
     }
 
     void nextTuple() override {
