@@ -156,7 +156,8 @@ class IndexScanExecutor : public AbstractExecutor {
         
         while(continue_to_find){
             int match_count=0;
-            while(fed_conds_[match_col_in_cond].lhs_col.col_name==index_col_names_[match_col_in_idx]){
+            while(match_col_in_cond<fed_conds_.size()&&match_col_in_idx<index_col_names_.size()
+                &&(fed_conds_[match_col_in_cond].lhs_col.col_name==index_col_names_[match_col_in_idx])){
                 in_idx_conds_.push_back(fed_conds_[match_col_in_cond]);
                 match_col_in_cond++;
                 match_count++;
@@ -240,7 +241,7 @@ class IndexScanExecutor : public AbstractExecutor {
                     memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
                     memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
                     key_offset+=index_meta_.cols[j].len;
-                    delete temp_str;
+                    delete []temp_str;
                     continue;
                 }
             }else if(this_cond.op==OP_LE||this_cond.op==OP_LT){
@@ -284,7 +285,7 @@ class IndexScanExecutor : public AbstractExecutor {
                     memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
                     memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
                     key_offset+=index_meta_.cols[j].len;
-                    delete temp_str;
+                    delete []temp_str;
                     continue;
                 }
             }

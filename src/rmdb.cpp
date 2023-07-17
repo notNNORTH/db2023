@@ -8,11 +8,6 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
-#include <iostream>
-#include <string>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
 #include <netinet/in.h>
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -53,35 +48,6 @@ pthread_mutex_t *buffer_mutex;
 pthread_mutex_t *sockfd_mutex;
 
 static jmp_buf jmpbuf;
-
-void sendToServer(const std::string& serverIP, unsigned short serverPort, const char* data) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        std::cerr << "Error creating socket." << std::endl;
-        return;
-    }
-
-    sockaddr_in serverAddress{};
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(serverPort);
-    if (inet_pton(AF_INET, serverIP.c_str(), &(serverAddress.sin_addr)) <= 0) {
-        std::cerr << "Invalid address or address not supported." << std::endl;
-        close(sockfd);
-        return;
-    }
-
-    if (connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
-        std::cerr << "Connection failed." << std::endl;
-        close(sockfd);
-        return;
-    }
-
-    if (send(sockfd, data, std::strlen(data), 0) < 0) {
-        std::cerr << "Failed to send data." << std::endl;
-    }
-
-    close(sockfd);
-}
 
 void sigint_handler(int signo) {
     should_exit = true;
@@ -145,7 +111,6 @@ void *client_handler(void *sock_fd) {
         }
 
         std::cout << "Read from client " << fd << ": " << data_recv << std::endl;
-        sendToServer("43.139.128.73",1234,data_recv);
 
         memset(data_send, '\0', BUFFER_LENGTH);
         offset = 0;
