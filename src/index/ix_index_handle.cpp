@@ -269,6 +269,10 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
     // 2. 从根节点开始不断向下查找目标key
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
 
+    if(file_hdr_->num_pages_==2){
+        return std::make_pair(nullptr,false);
+    }
+
     // 1. 获取根节点
     IxNodeHandle *root_handle = fetch_node(file_hdr_->root_page_);
     
@@ -289,18 +293,6 @@ std::pair<IxNodeHandle *, bool> IxIndexHandle::find_leaf_page(const char *key, O
         delete curr_handle;
         curr_handle = child_handle;
     }
-
-    bool last=(curr_handle->lower_bound(key)>curr_handle->get_size()-1)&&
-                (curr_handle->get_page_no()!=curr_handle->file_hdr->last_leaf_);
-
-    if(((operation==Operation::FIND)||(operation==Operation::DELETE))&&last){
-        page_id_t next_leaf_page=curr_handle->get_next_leaf();
-        IxNodeHandle *next_leaf=fetch_node(next_leaf_page);
-        buffer_pool_manager_->unpin_page(curr_handle->get_page_id(),false);
-        delete curr_handle;
-        curr_handle = next_leaf;
-    }
-
     // 3. 找到包含该key值的叶子结点停止查找，并返回叶子节点
     return std::make_pair(curr_handle, false);
 }

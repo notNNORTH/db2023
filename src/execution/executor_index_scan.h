@@ -167,6 +167,7 @@ class IndexScanExecutor : public AbstractExecutor {
             }
         }
         
+        //根据条件来初始化上界下界key
         int key_offset=0;
         for(int i=0;i<Col_Op_Conds.size();i++){
             auto colname=index_col_names_[i];
@@ -178,19 +179,7 @@ class IndexScanExecutor : public AbstractExecutor {
             auto LT_conds=Op_Conds[OP_LT];
             if(EQ_conds.size()>0){
                 void *temp;
-                switch (EQ_conds[0].rhs_val.type) {
-                    case TYPE_INT:
-                        temp=&(EQ_conds[0].rhs_val.int_val);
-                        break;
-                    case TYPE_FLOAT:
-                        temp=&(EQ_conds[0].rhs_val.float_val);
-                        break;
-                    case TYPE_STRING:
-                        temp=&(EQ_conds[0].rhs_val.str_val[0]);
-                        break;
-                    default:
-                        break;
-                }
+                set_value(EQ_conds[0],temp);
                 memcpy(key_lower + key_offset, temp, index_meta_.cols[i].len);
                 memcpy(key_upper + key_offset, temp, index_meta_.cols[i].len);
                 key_offset+=index_meta_.cols[i].len;
@@ -204,20 +193,7 @@ class IndexScanExecutor : public AbstractExecutor {
                     L_conds.insert(L_conds.end(), LT_conds.begin(), LT_conds.end());
                     Condition upper_bound=find_upper_cond(L_conds);
                     void* temp;
-
-                    switch (upper_bound.rhs_val.type) {
-                        case TYPE_INT:
-                            temp=&(upper_bound.rhs_val.int_val);
-                            break;
-                        case TYPE_FLOAT:
-                            temp=&(upper_bound.rhs_val.float_val);
-                            break;
-                        case TYPE_STRING:
-                            temp=&(upper_bound.rhs_val.str_val[0]);
-                            break;
-                        default:
-                            break;
-                    }
+                    set_value(upper_bound,temp);
                     memcpy(key_upper + key_offset, temp, index_meta_.cols[i].len);
                 }else if(G_size>0){
                     std::vector<Condition> G_conds;
@@ -225,87 +201,64 @@ class IndexScanExecutor : public AbstractExecutor {
                     G_conds.insert(G_conds.end(), GT_conds.begin(), GT_conds.end());
                     Condition lower_bound=find_lower_cond(G_conds);
                     void* temp;
-
-                    switch (lower_bound.rhs_val.type) {
-                        case TYPE_INT:
-                            temp=&(lower_bound.rhs_val.int_val);
-                            break;
-                        case TYPE_FLOAT:
-                            temp=&(lower_bound.rhs_val.float_val);
-                            break;
-                        case TYPE_STRING:
-                            temp=&(lower_bound.rhs_val.str_val[0]);
-                            break;
-                        default:
-                            break;
-                    }
+                    set_value(lower_bound,temp);
                     memcpy(key_lower + key_offset, temp, index_meta_.cols[i].len);
                 }
                 key_offset+=index_meta_.cols[i].len;
             }
         }
 
-        if(ix_handle->get_filehdr()->num_pages_>2){
-            auto begin=(ix_handle->find_leaf_page(key_lower,Operation::FIND,nullptr)).first;
-            auto end=(ix_handle->find_leaf_page(key_upper,Operation::FIND,nullptr)).first;
-
-            if(begin->get_size()!=0){
-                if(ix_compare(key_lower,key_upper,begin->get_file_hdr()->col_types_,begin->get_file_hdr()->col_lens_)>0){
-                    sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
-
-                    Iid lower=Iid();
-                    lower.page_no=static_cast<int>(begin->get_page_no());
-                    lower.slot_no=begin->lower_bound(key_lower);
-
-                    if (lower.slot_no == end->get_size()) {
-                        // keep valid slot
-                        lower.slot_no = end->get_size()-1;
-                    }
-
-                    sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
-                    scan_ = std::make_unique<IxScan>(ix_handle,lower,lower,sm_manager_->get_bpm());
-                    rid_=scan_->rid();
-
-                }else{
-                    Iid lower=Iid();
-                    lower.page_no=static_cast<int>(begin->get_page_no());
-                    lower.slot_no=begin->lower_bound(key_lower);
-
-                    Iid upper=Iid();
-                    upper.page_no=static_cast<int>(end->get_page_no());
-                    upper.slot_no=end->upper_bound(key_upper);
-
-                    if (upper.page_no!= ix_handle->get_filehdr()->last_leaf_ && upper.slot_no == end->get_size()) {
-                        // go to next leaf
-                        upper.slot_no = 0;
-                        upper.page_no = end->get_next_leaf();
-                    }
-
-                    if (lower.slot_no == end->get_size()) {
-                        // keep valid slot
-                        lower.slot_no = end->get_size()-1;
-                    }
-
-                    sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
-                    sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
-        
-                    scan_ = std::make_unique<IxScan>(ix_handle,lower,upper,sm_manager_->get_bpm());
-                    rid_=scan_->rid();
-                }
-            }else{
-                Iid no_node=Iid{0,0};
-                sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
-                sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
-                scan_ = std::make_unique<IxScan>(ix_handle,no_node,no_node,sm_manager_->get_bpm());
-                rid_=scan_->rid();
-            }
-        }else{
+        if(ix_compare(key_lower,key_upper,ix_handle->get_filehdr()->col_types_,ix_handle->get_filehdr()->col_lens_)>0){
             Iid no_node=Iid{0,0};
             scan_ = std::make_unique<IxScan>(ix_handle,no_node,no_node,sm_manager_->get_bpm());
             rid_=scan_->rid();
+            delete []key_lower;
+            delete []key_upper; 
+            return;
         }
-        delete []key_lower;
-        delete []key_upper;        
+
+        auto begin=(ix_handle->find_leaf_page(key_lower,Operation::FIND,nullptr)).first;
+        auto end=(ix_handle->find_leaf_page(key_upper,Operation::FIND,nullptr)).first;
+
+        if(begin==nullptr||end==nullptr||begin->get_size()==0||end->get_size()==0){
+            sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
+            sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
+            Iid no_node=Iid{0,0};
+            scan_ = std::make_unique<IxScan>(ix_handle,no_node,no_node,sm_manager_->get_bpm());
+            rid_=scan_->rid();
+            delete []key_lower;
+            delete []key_upper; 
+            return;
+        }else{
+            Iid lower=Iid();
+            lower.page_no=static_cast<int>(begin->get_page_no());
+            lower.slot_no=begin->lower_bound(key_lower);
+
+            Iid upper=Iid();
+            upper.page_no=static_cast<int>(end->get_page_no());
+            upper.slot_no=end->upper_bound(key_upper);
+
+            if (upper.page_no!= ix_handle->get_filehdr()->last_leaf_ && upper.slot_no == end->get_size()) {
+                // go to next leaf
+                upper.slot_no = 0;
+                upper.page_no = end->get_next_leaf();
+            }
+
+            if (lower.slot_no == end->get_size()) {
+                // keep valid slot
+                lower.slot_no = end->get_size()-1;
+            }
+
+            sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
+            sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
+        
+            scan_ = std::make_unique<IxScan>(ix_handle,lower,upper,sm_manager_->get_bpm());
+            rid_=scan_->rid();
+
+            delete []key_lower;
+            delete []key_upper; 
+            return;
+        }       
     }
 
     void nextTuple() override {
@@ -417,5 +370,19 @@ class IndexScanExecutor : public AbstractExecutor {
         }
     }
 
-
+    void set_value(Condition &con,void *&convey){
+        switch (con.rhs_val.type) {
+            case TYPE_INT:
+                convey=&(con.rhs_val.int_val);
+                break;
+            case TYPE_FLOAT:
+                convey=&(con.rhs_val.float_val);
+                break;
+            case TYPE_STRING:
+                convey=&(con.rhs_val.str_val[0]);
+                break;
+            default:
+                break;
+        }
+    }
 };
