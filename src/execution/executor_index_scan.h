@@ -104,9 +104,6 @@ class IndexScanExecutor : public AbstractExecutor {
 
     void beginTuple() override {
 
-        std::vector<Condition> lower_bound_conds;
-        std::vector<Condition> upper_bound_conds;
-
         int key_size=index_meta_.col_tot_len;
         char* key_lower = new char[key_size];
         char* key_upper = new char[key_size];
@@ -139,26 +136,26 @@ class IndexScanExecutor : public AbstractExecutor {
                 memcpy(key_lower + ofst, min_str, idx_col.len);
                 memcpy(key_upper + ofst, max_str, idx_col.len);
                 ofst+=idx_col.len;
-                delete min_str;
-                delete max_str;
+                delete []min_str;
+                delete []max_str;
                 break;
             }
         }
 
-
-        int key_offset=0;
-
-        //分离出索引内列cond
+        //分离出索引内列cond并根据列名\op分类
         bool continue_to_find=true;
         int match_col_in_cond=0;
         int match_col_in_idx=0;
         std::vector<Condition> in_idx_conds_;
+        std::unordered_map<std::string, std::unordered_map<CompOp, std::vector<Condition>>> Col_Op_Conds;
         
         while(continue_to_find){
             int match_count=0;
             while(match_col_in_cond<fed_conds_.size()&&match_col_in_idx<index_col_names_.size()
                 &&(fed_conds_[match_col_in_cond].lhs_col.col_name==index_col_names_[match_col_in_idx])){
-                in_idx_conds_.push_back(fed_conds_[match_col_in_cond]);
+                auto colname=index_col_names_[match_col_in_idx];
+                auto op=fed_conds_[match_col_in_cond].op;
+                Col_Op_Conds[colname][op].push_back(fed_conds_[match_col_in_cond]);
                 match_col_in_cond++;
                 match_count++;
             }
@@ -169,125 +166,82 @@ class IndexScanExecutor : public AbstractExecutor {
                 continue_to_find=false;
             }
         }
-
-        for(int i=0;i<in_idx_conds_.size();i++){
-            auto this_cond=in_idx_conds_[i];
-            Condition next_cond;
-            if(i!=in_idx_conds_.size()-1){
-                next_cond=in_idx_conds_[i+1];
+        
+        int key_offset=0;
+        for(int i=0;i<Col_Op_Conds.size();i++){
+            auto colname=index_col_names_[i];
+            auto Op_Conds=Col_Op_Conds[colname];
+            auto EQ_conds=Op_Conds[OP_EQ];
+            auto GE_conds=Op_Conds[OP_GE];
+            auto GT_conds=Op_Conds[OP_GT];
+            auto LE_conds=Op_Conds[OP_LE];
+            auto LT_conds=Op_Conds[OP_LT];
+            if(EQ_conds.size()>0){
+                void *temp;
+                switch (EQ_conds[0].rhs_val.type) {
+                    case TYPE_INT:
+                        temp=&(EQ_conds[0].rhs_val.int_val);
+                        break;
+                    case TYPE_FLOAT:
+                        temp=&(EQ_conds[0].rhs_val.float_val);
+                        break;
+                    case TYPE_STRING:
+                        temp=&(EQ_conds[0].rhs_val.str_val[0]);
+                        break;
+                    default:
+                        break;
+                }
+                memcpy(key_lower + key_offset, temp, index_meta_.cols[i].len);
+                memcpy(key_upper + key_offset, temp, index_meta_.cols[i].len);
+                key_offset+=index_meta_.cols[i].len;
             }else{
-                next_cond=this_cond;
-            }
-            const void* col_value_lower;
-            const void* col_value_upper;
+                int G_size=GE_conds.size()+GT_conds.size();
+                int L_size=LE_conds.size()+LT_conds.size();
+                assert((G_size+L_size)>0);
+                if(L_size>0){
+                    std::vector<Condition> L_conds;
+                    L_conds.insert(L_conds.end(), LE_conds.begin(), LE_conds.end());
+                    L_conds.insert(L_conds.end(), LT_conds.begin(), LT_conds.end());
+                    Condition upper_bound=find_upper_cond(L_conds);
+                    void* temp;
 
-            if(this_cond.op==OP_EQ){
-                if(this_cond.rhs_val.type==TYPE_INT){
-                    col_value_lower = &(this_cond.rhs_val.int_val);
-                    col_value_upper = &(this_cond.rhs_val.int_val);
-                }else if(this_cond.rhs_val.type==TYPE_FLOAT){
-                    col_value_lower = &(this_cond.rhs_val.float_val);
-                    col_value_upper = &(this_cond.rhs_val.float_val);
-                }else if(this_cond.rhs_val.type==TYPE_STRING){
-                    col_value_lower = &(this_cond.rhs_val.str_val[0]);
-                    col_value_upper = &(this_cond.rhs_val.str_val[0]);
+                    switch (upper_bound.rhs_val.type) {
+                        case TYPE_INT:
+                            temp=&(upper_bound.rhs_val.int_val);
+                            break;
+                        case TYPE_FLOAT:
+                            temp=&(upper_bound.rhs_val.float_val);
+                            break;
+                        case TYPE_STRING:
+                            temp=&(upper_bound.rhs_val.str_val[0]);
+                            break;
+                        default:
+                            break;
+                    }
+                    memcpy(key_upper + key_offset, temp, index_meta_.cols[i].len);
+                }else if(G_size>0){
+                    std::vector<Condition> G_conds;
+                    G_conds.insert(G_conds.end(), GE_conds.begin(), GE_conds.end());
+                    G_conds.insert(G_conds.end(), GT_conds.begin(), GT_conds.end());
+                    Condition lower_bound=find_lower_cond(G_conds);
+                    void* temp;
+
+                    switch (lower_bound.rhs_val.type) {
+                        case TYPE_INT:
+                            temp=&(lower_bound.rhs_val.int_val);
+                            break;
+                        case TYPE_FLOAT:
+                            temp=&(lower_bound.rhs_val.float_val);
+                            break;
+                        case TYPE_STRING:
+                            temp=&(lower_bound.rhs_val.str_val[0]);
+                            break;
+                        default:
+                            break;
+                    }
+                    memcpy(key_lower + key_offset, temp, index_meta_.cols[i].len);
                 }
-
-                auto it=std::find(index_col_names_.begin(),index_col_names_.end(),this_cond.lhs_col.col_name);
-                int j=std::distance(index_col_names_.begin(),it);
-                memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
-                memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
-                key_offset+=index_meta_.cols[j].len;
-                continue;
-
-            }else if(this_cond.op==OP_GE||this_cond.op==OP_GT){
-                if((next_cond.lhs_col.col_name==this_cond.lhs_col.col_name)&&(next_cond.op==OP_LE||next_cond.op==OP_LT)){
-                    auto it=std::find(index_col_names_.begin(),index_col_names_.end(),this_cond.lhs_col.col_name);
-                    int j=std::distance(index_col_names_.begin(),it);
-
-                    if(this_cond.rhs_val.type==TYPE_INT){
-                        col_value_lower = &(this_cond.rhs_val.int_val);
-                        col_value_upper = &(next_cond.rhs_val.int_val);
-                    }else if(this_cond.rhs_val.type==TYPE_FLOAT){
-                        col_value_lower = &(this_cond.rhs_val.float_val);
-                        col_value_upper = &(next_cond.rhs_val.float_val);
-                    }else if(this_cond.rhs_val.type==TYPE_STRING){
-                        col_value_lower = &(this_cond.rhs_val.str_val[0]);
-                        col_value_upper = &(next_cond.rhs_val.str_val[0]);
-                    }
-
-                    memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
-                    memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
-                    key_offset+=index_meta_.cols[j].len;
-                    i++;
-                    continue;
-                }else{
-                    auto it=std::find(index_col_names_.begin(),index_col_names_.end(),this_cond.lhs_col.col_name);
-                    int j=std::distance(index_col_names_.begin(),it);
-                    char* temp_str = new char[index_meta_.cols[j].len];
-
-                    if(this_cond.rhs_val.type==TYPE_INT){
-                        col_value_lower = &(this_cond.rhs_val.int_val);
-                        col_value_upper = &(max_int);
-                    }else if(this_cond.rhs_val.type==TYPE_FLOAT){
-                        col_value_lower = &(this_cond.rhs_val.float_val);
-                        col_value_upper = &(max_flt);
-                    }else if(this_cond.rhs_val.type==TYPE_STRING){
-                        col_value_lower = &(this_cond.rhs_val.str_val[0]);
-                        memset(temp_str,255,index_meta_.cols[j].len);
-                        col_value_upper = temp_str;
-                    }
-
-                    memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
-                    memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
-                    key_offset+=index_meta_.cols[j].len;
-                    delete []temp_str;
-                    continue;
-                }
-            }else if(this_cond.op==OP_LE||this_cond.op==OP_LT){
-                if((next_cond.lhs_col.col_name==this_cond.lhs_col.col_name)&&(next_cond.op==OP_GE||next_cond.op==OP_GT)){
-                    auto it=std::find(index_col_names_.begin(),index_col_names_.end(),this_cond.lhs_col.col_name);
-                    int j=std::distance(index_col_names_.begin(),it);
-
-                    if(this_cond.rhs_val.type==TYPE_INT){
-                        col_value_lower = &(next_cond.rhs_val.int_val);
-                        col_value_upper = &(this_cond.rhs_val.int_val);
-                    }else if(this_cond.rhs_val.type==TYPE_FLOAT){
-                        col_value_lower = &(next_cond.rhs_val.float_val);
-                        col_value_upper = &(this_cond.rhs_val.float_val);
-                    }else if(this_cond.rhs_val.type==TYPE_STRING){
-                        col_value_lower = &(next_cond.rhs_val.str_val[0]);
-                        col_value_upper = &(this_cond.rhs_val.str_val[0]);
-                    }
-
-                    memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
-                    memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
-                    key_offset+=index_meta_.cols[j].len;
-                    i++;
-                    continue;
-                }else{
-                    auto it=std::find(index_col_names_.begin(),index_col_names_.end(),this_cond.lhs_col.col_name);
-                    int j=std::distance(index_col_names_.begin(),it);
-                    char* temp_str = new char[index_meta_.cols[j].len];
-
-                    if(this_cond.rhs_val.type==TYPE_INT){
-                        col_value_lower = &(min_int);
-                        col_value_upper = &(this_cond.rhs_val.int_val);
-                    }else if(this_cond.rhs_val.type==TYPE_FLOAT){
-                        col_value_lower = &(min_flt);
-                        col_value_upper = &(this_cond.rhs_val.float_val);
-                    }else if(this_cond.rhs_val.type==TYPE_STRING){
-                        memset(temp_str,0,index_meta_.cols[j].len);
-                        col_value_lower = temp_str;
-                        col_value_upper = &(this_cond.rhs_val.str_val[0]);
-                    }
-
-                    memcpy(key_lower + key_offset, col_value_lower, index_meta_.cols[j].len);
-                    memcpy(key_upper + key_offset, col_value_upper, index_meta_.cols[j].len);
-                    key_offset+=index_meta_.cols[j].len;
-                    delete []temp_str;
-                    continue;
-                }
+                key_offset+=index_meta_.cols[i].len;
             }
         }
 
@@ -350,8 +304,8 @@ class IndexScanExecutor : public AbstractExecutor {
             scan_ = std::make_unique<IxScan>(ix_handle,no_node,no_node,sm_manager_->get_bpm());
             rid_=scan_->rid();
         }
-        delete key_lower;
-        delete key_upper;        
+        delete []key_lower;
+        delete []key_upper;        
     }
 
     void nextTuple() override {
@@ -396,6 +350,71 @@ class IndexScanExecutor : public AbstractExecutor {
     Rid &rid() override { 
         rid_=scan_->rid();
         return  rid_;
+    }
+
+    int compare_value(Value v1,Value v2){
+        switch (v1.type) {
+            case TYPE_INT:
+                if(v1.int_val<v2.int_val){
+                    return -1;
+                }else if(v1.int_val>v2.int_val){
+                    return 1;
+                }else{
+                    return 0;
+                }
+            case TYPE_FLOAT:
+                if(v1.float_val<v2.float_val){
+                    return -1;
+                }else if(v1.float_val>v2.float_val){
+                    return 1;
+                }else{
+                    return 0;
+                }
+            case TYPE_STRING:
+                if(v1.str_val<v2.str_val){
+                    return -1;
+                }else if(v1.str_val>v2.str_val){
+                    return 1;
+                }else{
+                    return 0;
+                }
+            default:
+                break;
+        }
+    }
+
+    Condition find_upper_cond(std::vector<Condition> v){
+        if(v.size()==1){
+            return v[0];
+        }else{
+            Condition min_con=v[0];
+            for(int i=1;i<v.size();i++){
+                auto it_con=v[i];
+                if((compare_value(it_con.rhs_val,min_con.rhs_val))<0){
+                    min_con=it_con;
+                }else if(((compare_value(it_con.rhs_val,min_con.rhs_val))==0)&&it_con.op==OP_LT){
+                    min_con=it_con;
+                }
+            }
+            return min_con;
+        }
+    }
+
+    Condition find_lower_cond(std::vector<Condition> v){
+        if(v.size()==1){
+            return v[0];
+        }else{
+            Condition max_con=v[0];
+            for(int i=1;i<v.size();i++){
+                auto it_con=v[i];
+                if((compare_value(it_con.rhs_val,max_con.rhs_val))>0){
+                    max_con=it_con;
+                }else if(((compare_value(it_con.rhs_val,max_con.rhs_val))==0)&&it_con.op==OP_GT){
+                    max_con=it_con;
+                }
+            }
+            return max_con;
+        }
     }
 
 
