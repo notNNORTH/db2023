@@ -314,6 +314,9 @@ bool IxIndexHandle::get_value(const char *key, std::vector<Rid> *result, Transac
 
     // 1. 获取目标key值所在的叶子结点
     std::pair<IxNodeHandle*, bool> leaf_pair = find_leaf_page(key, Operation::FIND, transaction, false);
+    if(leaf_pair.first==nullptr){
+        return false;
+    }
     IxNodeHandle* leaf_node = leaf_pair.first;
     bool root_is_latched = leaf_pair.second;
 
@@ -543,6 +546,9 @@ bool IxIndexHandle::delete_entry(const char *key, Transaction *transaction) {
     // 1. 获取该键值对所在的叶子结点
     std::pair<IxNodeHandle *, bool> leaf_pair_to_delete = find_leaf_page(key, Operation::DELETE, transaction);
     auto leaf_to_delete=leaf_pair_to_delete.first;
+    if(leaf_to_delete==nullptr){
+        return false;
+    }
 
     //是否删除成功的判断条件
     int key_num_before_delete=leaf_to_delete->get_size();
