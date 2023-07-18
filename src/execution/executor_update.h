@@ -77,6 +77,7 @@ class UpdateExecutor : public AbstractExecutor {
     }
 
     std::unique_ptr<RmRecord> Next() override {
+/*
 
         // 1.检查是否还有待更新的记录。如果没有，返回nullptr表示更新操作完成
         for (auto &rid : rids_){
@@ -188,6 +189,7 @@ class UpdateExecutor : public AbstractExecutor {
 
         }
         return nullptr;
+*/
     }
         
     Rid &rid() override { return _abstract_rid; }

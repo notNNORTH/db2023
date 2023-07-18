@@ -74,7 +74,7 @@ class DeleteExecutor : public AbstractExecutor {
     }
 
     std::unique_ptr<RmRecord> Next() override {
-
+/*
         std::vector<Rid> rids_delete;
 
         for (auto &rid: rids_){
@@ -124,7 +124,9 @@ class DeleteExecutor : public AbstractExecutor {
         }
        
         return nullptr;
+    */
     }
 
     Rid &rid() override { return _abstract_rid; }
+
 };
