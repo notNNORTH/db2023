@@ -221,8 +221,6 @@ class IndexScanExecutor : public AbstractExecutor {
         auto end=(ix_handle->find_leaf_page(key_upper,Operation::FIND,nullptr)).first;
 
         if(begin==nullptr||end==nullptr||begin->get_size()==0||end->get_size()==0){
-            sm_manager_->get_bpm()->unpin_page(begin->get_page_id(),false);
-            sm_manager_->get_bpm()->unpin_page(end->get_page_id(),false);
             Iid no_node=Iid{0,0};
             scan_ = std::make_unique<IxScan>(ix_handle,no_node,no_node,sm_manager_->get_bpm());
             rid_=scan_->rid();
