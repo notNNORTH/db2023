@@ -410,27 +410,14 @@ void SmManager::drop_index(const std::string& tab_name, const std::vector<std::s
             int count_find_col=0;
 
             if((index_it.col_num==col_names.size())){
-                
                 for(int j=0;j<col_names.size();j++){
-                    bool find_this_col=false;
-                    auto col_name=col_names[j];
-                    for(int it=0;it<index_it.cols.size();it++){
-                        if(index_it.cols[it].name==col_name){
-                            find_this_col=true;
-                            break;
-                        }
+                    if(index_it.cols[j].name==col_names[j]){
+                        count_find_col++;
                     }
-                    //只要有一个属性找不到就说明不是这个index
-                    if(!find_this_col){
-                        is_this_index=false;
-                        break;
-                    }
-                    count_find_col++;
                 }
-
             }
 
-            if(is_this_index&&count_find_col==col_names.size()){
+            if(count_find_col==col_names.size()){
                 auto it=del_indexes.begin()+i;
                 del_indexes.erase(it);
                 break;

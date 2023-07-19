@@ -77,6 +77,9 @@ class UpdateExecutor : public AbstractExecutor {
     }
 
     std::unique_ptr<RmRecord> Next() override {
+        std::vector<Rid> match_rids;
+        std::vector<RmRecord> old_recs;
+        std::vector<RmRecord> new_recs;
 
         // 1.检查是否还有待更新的记录。如果没有，返回nullptr表示更新操作完成
         for (auto &rid : rids_){
@@ -97,16 +100,8 @@ class UpdateExecutor : public AbstractExecutor {
             }
             if(!do_update){continue;}
 
-            for(auto& index:tab_.indexes) {
-                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                char key[index.col_tot_len];
-                int offset = 0;
-                for(int i = 0; i < index.col_num; i++) {
-                    memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
-                    offset += index.cols[i].len;
-                }
-                ih->delete_entry(key, nullptr);
-            }
+            match_rids.push_back(rid);
+            old_recs.push_back(old_rec);
 
             // 4.根据set_clauses_中的设定，更新记录的对应字段
             for (const auto& set_clause : set_clauses_) {
@@ -151,42 +146,71 @@ class UpdateExecutor : public AbstractExecutor {
 
             // 5.使用文件处理器（fh_）将更新后的记录写回到文件中
             fh_->update_record(rid, rec.data, context_);
-
-            try {
-                // 将rid插入在内存中更新后的新的record的cols对应key的index
-                for(size_t i = 0; i < tab_.indexes.size(); ++i) {
-                    auto& index = tab_.indexes[i];
-                    auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                    char key[index.col_tot_len];
-                    int offset = 0;
-                    for(size_t i = 0; i < index.col_num; ++i) {
-                        memcpy(key + offset, rec.data + index.cols[i].offset, index.cols[i].len);
-                        offset += index.cols[i].len;
-                    }
-                    ih->insert_entry(key,rid,nullptr);
-                }
-            }catch(InternalError &error) {
-                // 1. 恢复record
-                fh_->update_record(rid, old_rec.data, context_);
-                // 恢复索引
-                // 2. 恢复所有的index
-                for(auto& index:tab_.indexes) {
-                    auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                    char key[index.col_tot_len];
-                    int offset = 0;
-                    for(int i = 0; i < index.col_num; i++) {
-                        memcpy(key + offset, old_rec.data + index.cols[i].offset, index.cols[i].len);
-                        offset += index.cols[i].len;
-                    }
-                    ih->insert_entry(key, rid, nullptr);
-                }
-
-                // 3. 继续抛出异常
-                throw InternalError("item already exits!");
-            }
-
+            new_recs.push_back(rec);
 
         }
+
+        bool error_occur=false;
+
+        for(auto& index:tab_.indexes) {
+            auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+            char old_key[index.col_tot_len];
+            char new_key[index.col_tot_len];
+
+            for(int i=0;i<match_rids.size();i++){
+
+                int offset = 0;
+
+                for(int j = 0; j < index.col_num; j++) {
+                    memcpy(old_key + offset, old_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                    memcpy(new_key + offset, new_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                    offset += index.cols[j].len;
+                }
+
+                if((ix_compare(old_key,new_key,ih->get_filehdr()->col_types_,ih->get_filehdr()->col_lens_)!=0)){
+                    auto leaf_node = ih->find_leaf_page(new_key,Operation::FIND,nullptr,false).first;
+                    int idx=leaf_node->lower_bound(new_key);
+
+                    if(idx<leaf_node->get_size()){
+                        auto existed_key=leaf_node->get_key(idx);
+                        if(ix_compare(new_key,existed_key,ih->get_filehdr()->col_types_,ih->get_filehdr()->col_lens_)==0){
+                            error_occur=true;
+                            break;
+                        }
+                    }
+                    sm_manager_->get_bpm()->unpin_page(leaf_node->get_page_id(),false);
+                }
+            }
+            if(error_occur==true){
+                break;
+            }
+        }
+
+        if(error_occur==true){
+            for(int j=0;j<match_rids.size();j++){
+                fh_->update_record(match_rids[j], old_recs[j].data, context_);
+            }
+            throw InternalError("item already exits!");
+        }else{
+            for(auto& index:tab_.indexes) {
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+                char old_key[index.col_tot_len];
+                char new_key[index.col_tot_len];
+            
+                for(int i=0;i<match_rids.size();i++){
+                    int offset = 0;
+                    Rid now_rid=match_rids[i];
+                    for(int i = 0; i < index.col_num; i++) {
+                        memcpy(old_key + offset, old_recs[i].data + index.cols[i].offset, index.cols[i].len);
+                        memcpy(new_key + offset, new_recs[i].data + index.cols[i].offset, index.cols[i].len);
+                        offset += index.cols[i].len;
+                    }
+                    ih->delete_entry(old_key,nullptr);
+                    ih->insert_entry(new_key,now_rid,nullptr);
+                }
+            }
+        }
+        
         return nullptr;
     }
         
