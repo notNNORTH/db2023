@@ -110,13 +110,14 @@ class DeleteExecutor : public AbstractExecutor {
             for(int i = 0; i < tab_.indexes.size(); ++i) {
                 auto& it_index = tab_.indexes[i];
                 auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, it_index.cols)).get();
-                char key[it_index.col_tot_len];
+                char* key = new char[it_index.col_tot_len];
                 int offset = 0;
-                for(int i = 0; i < it_index.col_num; ++i) {
-                    memcpy(key + offset, rec_to_del.data + it_index.cols[i].offset, it_index.cols[i].len);
-                    offset += it_index.cols[i].len;
+                for(int j = 0; j < it_index.col_num; ++j) {
+                    memcpy(key + offset, rec_to_del.data + it_index.cols[j].offset, it_index.cols[j].len);
+                    offset += it_index.cols[j].len;
                 }
                 ih->delete_entry(key, nullptr);
+                delete []key;
             }
             
             // 3.删除记录

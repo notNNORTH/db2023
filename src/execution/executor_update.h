@@ -154,11 +154,10 @@ class UpdateExecutor : public AbstractExecutor {
 
         for(auto& index:tab_.indexes) {
             auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-            char old_key[index.col_tot_len];
-            char new_key[index.col_tot_len];
 
             for(int i=0;i<match_rids.size();i++){
-
+                char* old_key = new char[index.col_tot_len];
+                char* new_key = new char[index.col_tot_len];
                 int offset = 0;
 
                 for(int j = 0; j < index.col_num; j++) {
@@ -180,6 +179,8 @@ class UpdateExecutor : public AbstractExecutor {
                     }
                     sm_manager_->get_bpm()->unpin_page(leaf_node->get_page_id(),false);
                 }
+                delete []old_key;
+                delete []new_key;
             }
             if(error_occur==true){
                 break;
@@ -194,19 +195,21 @@ class UpdateExecutor : public AbstractExecutor {
         }else{
             for(auto& index:tab_.indexes) {
                 auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                char old_key[index.col_tot_len];
-                char new_key[index.col_tot_len];
             
                 for(int i=0;i<match_rids.size();i++){
+                    char* old_key = new char[index.col_tot_len];
+                    char* new_key = new char[index.col_tot_len];
                     int offset = 0;
                     Rid now_rid=match_rids[i];
-                    for(int i = 0; i < index.col_num; i++) {
-                        memcpy(old_key + offset, old_recs[i].data + index.cols[i].offset, index.cols[i].len);
-                        memcpy(new_key + offset, new_recs[i].data + index.cols[i].offset, index.cols[i].len);
-                        offset += index.cols[i].len;
+                    for(int j = 0; j < index.col_num; j++) {
+                        memcpy(old_key + offset, old_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                        memcpy(new_key + offset, new_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                        offset += index.cols[j].len;
                     }
                     ih->delete_entry(old_key,nullptr);
                     ih->insert_entry(new_key,now_rid,nullptr);
+                    delete []old_key;
+                    delete []new_key;
                 }
             }
         }

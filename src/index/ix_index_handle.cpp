@@ -650,6 +650,7 @@ bool IxIndexHandle::adjust_root(IxNodeHandle *old_root_node) {
     }
     //如果old_root_node是叶结点，且大小为0，则直接更新root page
     if(old_root_node->is_leaf_page() && old_root_node->get_size() == 0){
+        erase_leaf(old_root_node);
         release_node_handle(*old_root_node);
         file_hdr_->root_page_ = INVALID_PAGE_ID;
         return true;
