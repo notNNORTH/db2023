@@ -95,11 +95,11 @@ std::shared_ptr<Query> Analyze::do_analyze(std::shared_ptr<ast::TreeNode> parse)
         check_clause({x->tab_name}, query->conds);        
     } else if (auto x = std::dynamic_pointer_cast<ast::InsertStmt>(parse)) {
         // 处理表名
-        query->tables.push_back(x->tab_name);
+        /*query->tables.push_back(x->tab_name);
         auto tab = query->tables.back();
         if (!sm_manager_->db_.is_table(tab)){
             throw TableNotFoundError(tab);
-        }
+        }*/
 
         // 处理insert 的values值
         for (auto &sv_val : x->vals) {
