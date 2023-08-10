@@ -48,6 +48,7 @@ pthread_mutex_t *buffer_mutex;
 pthread_mutex_t *sockfd_mutex;
 
 static jmp_buf jmpbuf;
+
 void sigint_handler(int signo) {
     should_exit = true;
     log_manager->flush_log_to_disk();

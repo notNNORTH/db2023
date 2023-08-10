@@ -302,6 +302,11 @@ struct AggregateStmt : public TreeNode {
             }
 };
 
+struct ShowIndexStmt : public TreeNode {
+    std::string tab_name;
+  
+    ShowIndexStmt(std::string tab_name):tab_name(std::move(tab_name)){}
+};
 
 // Semantic value
 struct SemValue {

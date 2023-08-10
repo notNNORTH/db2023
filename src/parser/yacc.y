@@ -159,6 +159,10 @@ dml:
     {
         $$ = std::make_shared<SelectStmt>($2, $4, $5, $6);
     }
+    |   SHOW INDEX FROM tbName 
+    {
+        $$ = std::make_shared<ShowIndexStmt>($4);
+    }
     ;
 
 fieldList:

@@ -24,6 +24,7 @@ See the Mulan PSL v2 for more details. */
 #include "execution/executor_delete.h"
 #include "execution/execution_sort.h"
 #include "execution/execution_aggregation.h"
+#include "execution/execution_showindex.h"
 #include "common/common.h"
 
 typedef enum portalTag{
@@ -102,6 +103,14 @@ class Portal
                 {
                     std::unique_ptr<AbstractExecutor> root =
                             std::make_unique<InsertExecutor>(sm_manager_, x->tab_name_, x->values_, context);
+            
+                    return std::make_shared<PortalStmt>(PORTAL_DML_WITHOUT_SELECT, std::vector<TabCol>(), std::move(root), plan);
+                }
+
+                case T_ShowIndex:
+                {
+                    std::unique_ptr<AbstractExecutor> root =
+                            std::make_unique<ShowIndexExecutor>(sm_manager_, x->tab_name_, context);
             
                     return std::make_shared<PortalStmt>(PORTAL_DML_WITHOUT_SELECT, std::vector<TabCol>(), std::move(root), plan);
                 }

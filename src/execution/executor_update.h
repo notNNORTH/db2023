@@ -77,12 +77,16 @@ class UpdateExecutor : public AbstractExecutor {
     }
 
     std::unique_ptr<RmRecord> Next() override {
+        std::vector<Rid> match_rids;
+        std::vector<RmRecord> old_recs;
+        std::vector<RmRecord> new_recs;
 
         // 1.检查是否还有待更新的记录。如果没有，返回nullptr表示更新操作完成
         for (auto &rid : rids_){
 
             // 2.通过记录ID使用文件处理器（fh_）获取该记录的内容（RmRecord对象）
             RmRecord rec = *fh_->get_record(rid, context_);
+            RmRecord old_rec=rec;
 
             // 3.判断 WHERE 后面的condition
             bool do_update = true;
@@ -96,6 +100,8 @@ class UpdateExecutor : public AbstractExecutor {
             }
             if(!do_update){continue;}
 
+            match_rids.push_back(rid);
+            old_recs.push_back(old_rec);
 
             // 4.根据set_clauses_中的设定，更新记录的对应字段
             for (const auto& set_clause : set_clauses_) {
@@ -144,22 +150,74 @@ class UpdateExecutor : public AbstractExecutor {
 
             // 5.使用文件处理器（fh_）将更新后的记录写回到文件中
             fh_->update_record(rid, rec.data, context_);
+            new_recs.push_back(rec);
 
-            // 6.针对表中的每个索引，更新相应的索引条目     //////////////////////////////////////////////////////////
-            for (const auto& index : tab_.indexes) {
-                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-                char* key = new char[index.col_tot_len];
+        }
+
+        bool error_occur=false;
+
+        for(auto& index:tab_.indexes) {
+            auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+
+            for(int i=0;i<match_rids.size();i++){
+                char* old_key = new char[index.col_tot_len];
+                char* new_key = new char[index.col_tot_len];
                 int offset = 0;
 
-                for (size_t i = 0; i < index.col_num; ++i) {
-                    memcpy(key + offset, rec.data + index.cols[i].offset, index.cols[i].len);
-                    offset += index.cols[i].len;
+                for(int j = 0; j < index.col_num; j++) {
+                    memcpy(old_key + offset, old_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                    memcpy(new_key + offset, new_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                    offset += index.cols[j].len;
                 }
 
-                // ih->update_entry(key, rid, context_->txn_); /////////////////////////////haven't done//////////////////////////
+                if((ix_compare(old_key,new_key,ih->get_filehdr()->col_types_,ih->get_filehdr()->col_lens_)!=0)){
+                    auto leaf_node = ih->find_leaf_page(new_key,Operation::FIND,nullptr,false).first;
+                    int idx=leaf_node->lower_bound(new_key);
+
+                    if(idx<leaf_node->get_size()){
+                        auto existed_key=leaf_node->get_key(idx);
+                        if(ix_compare(new_key,existed_key,ih->get_filehdr()->col_types_,ih->get_filehdr()->col_lens_)==0){
+                            error_occur=true;
+                            break;
+                        }
+                    }
+                    sm_manager_->get_bpm()->unpin_page(leaf_node->get_page_id(),false);
+                }
+                delete []old_key;
+                delete []new_key;
+            }
+            if(error_occur==true){
+                break;
             }
         }
-        //////////////////////////////////////// return std::make_unique<RmRecord>(std::move(rec));
+
+        if(error_occur==true){
+            for(int j=0;j<match_rids.size();j++){
+                fh_->update_record(match_rids[j], old_recs[j].data, context_);
+            }
+            throw InternalError("item already exits!");
+        }else{
+            for(auto& index:tab_.indexes) {
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+            
+                for(int i=0;i<match_rids.size();i++){
+                    char* old_key = new char[index.col_tot_len];
+                    char* new_key = new char[index.col_tot_len];
+                    int offset = 0;
+                    Rid now_rid=match_rids[i];
+                    for(int j = 0; j < index.col_num; j++) {
+                        memcpy(old_key + offset, old_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                        memcpy(new_key + offset, new_recs[i].data + index.cols[j].offset, index.cols[j].len);
+                        offset += index.cols[j].len;
+                    }
+                    ih->delete_entry(old_key,nullptr);
+                    ih->insert_entry(new_key,now_rid,nullptr);
+                    delete []old_key;
+                    delete []new_key;
+                }
+            }
+        }
+        
         return nullptr;
     }
         

@@ -137,7 +137,7 @@ void SmManager::open_db(const std::string& db_name) {
 
 }
 
-/**
+/**s
  * @description: 把数据库相关的元数据刷入磁盘中
  */
 void SmManager::flush_meta() {
@@ -289,7 +289,91 @@ void SmManager::drop_table(const std::string& tab_name, Context* context) {
  * @param {Context*} context
  */
 void SmManager::create_index(const std::string& tab_name, const std::vector<std::string>& col_names, Context* context) {
-    
+    auto idx_file_exist=ix_manager_->exists(tab_name,col_names);
+    if(!idx_file_exist){
+        //指定表里所有的列的meta值,指定的idx的数量
+        auto& tab_col_meta=db_.tabs_[tab_name].cols;
+        auto idx_num=col_names.size();
+        auto tab_col_meta_size=tab_col_meta.size();
+
+        //存指定idx列的meta值
+        std::vector<ColMeta> idx_col_meta;
+
+        //选择出idx对应的列的meta值
+
+        int col_tot_len = 0;
+
+        for(int i=0;i<idx_num;i++){
+
+            bool found=false;
+            auto idx_col_temp=col_names[i];
+
+            for(int j=0;j<tab_col_meta_size;j++){
+
+                auto& col_meta_ref=tab_col_meta[j];
+
+                if(idx_col_temp==col_meta_ref.name){
+                    found=true;
+                    col_meta_ref.index=true;
+                    idx_col_meta.push_back(col_meta_ref);
+                    col_tot_len=col_tot_len+col_meta_ref.len;
+                }
+
+                if(found==true){
+                    break;
+                }
+
+            }
+
+            if(found==false){
+                throw IndexNotFoundError(tab_name,col_names);
+            }
+
+        }
+
+        //创建.idx文件
+        ix_manager_->create_index(tab_name,idx_col_meta);
+
+        //tabmeta.IndexMeta vector,更新indexes数组
+        IndexMeta temp=IndexMeta{tab_name,col_tot_len,idx_num,idx_col_meta};
+        db_.tabs_[tab_name].indexes.push_back(temp);
+
+        // 更新ihs
+        std::string ix_name = ix_manager_->get_index_name(tab_name, col_names);
+        std::unique_ptr<IxIndexHandle> index_handle_ = ix_manager_->open_index(tab_name,col_names);
+        ihs_.insert(std::make_pair(ix_name, std::move(index_handle_)));
+        std::unique_ptr<IxIndexHandle>& index_handle = ihs_.at(ix_name);
+
+        //如果表内已经有记录，idx文件需要初始化
+        //扫描所有记录
+        std::unique_ptr<RmFileHandle>& rmfile_handle = fhs_[tab_name];
+        RmFileHandle* raw_rmfile_handle=rmfile_handle.get();
+        RmScan *scan_init=new RmScan(raw_rmfile_handle);
+
+
+
+        for(;!scan_init->is_end();scan_init->next()){
+            auto record=raw_rmfile_handle->get_record(scan_init->rid(),context);
+            char* key_buffer = new char[col_tot_len+1];  // 键的长度
+            int offset=0;
+
+            if(!record){break;}
+
+            for (auto &col : idx_col_meta) {
+                char *dest=key_buffer+offset;
+                char *src=record->data+col.offset;
+                memcpy(dest, src, col.len);
+                offset=offset+col.len;
+            }
+
+            key_buffer[col_tot_len]='\0';
+            index_handle->insert_entry(key_buffer,scan_init->rid(),nullptr);
+        }
+        //ix_manager_->close_index(index_handle.get());
+        //将数据刷盘
+        flush_meta();
+    }
+
 }
 
 /**
@@ -299,7 +383,62 @@ void SmManager::create_index(const std::string& tab_name, const std::vector<std:
  * @param {Context*} context
  */
 void SmManager::drop_index(const std::string& tab_name, const std::vector<std::string>& col_names, Context* context) {
-    
+
+    auto idx_file_exist=ix_manager_->exists(tab_name,col_names);
+    if(!idx_file_exist){
+        throw IndexNotFoundError(tab_name,col_names);
+    }
+    else{
+        auto index_handle=ihs_.at(ix_manager_->get_index_name(tab_name, col_names)).get();
+
+        for(int i=2;i<index_handle->get_filehdr()->num_pages_;i++){
+            PageId temp=PageId{index_handle->get_fd(),i};
+            buffer_pool_manager_->delete_page(temp);
+        }
+
+        ix_manager_->close_index(index_handle);
+        ix_manager_->destroy_index(tab_name,col_names);
+        ihs_.erase(ix_manager_->get_index_name(tab_name,col_names));
+        //修改indexes!!!!!!!
+        auto& del_indexes=db_.tabs_[tab_name].indexes;
+        //对表内的每一个index，进行对比
+        for(int i=0;i<del_indexes.size();i++){
+
+            //对colnames中的每一个列名，在当前indexmeta的cols中查找，只有全部都有且个数相同，才是对应的索引
+            bool is_this_index=true;
+            auto& index_it=del_indexes[i];
+            int count_find_col=0;
+
+            if((index_it.col_num==col_names.size())){
+                for(int j=0;j<col_names.size();j++){
+                    if(index_it.cols[j].name==col_names[j]){
+                        count_find_col++;
+                    }
+                }
+            }
+
+            if(count_find_col==col_names.size()){
+                auto it=del_indexes.begin()+i;
+                del_indexes.erase(it);
+                break;
+            }
+
+        }
+
+        //修改colmeta!!!!!!!
+        auto& tab_col_meta=db_.tabs_[tab_name].cols;
+
+        for(int j=0;j<col_names.size();j++){
+            for(int k=0;k<tab_col_meta.size();k++){
+                if(col_names[j]==tab_col_meta[k].name){
+                    tab_col_meta[k].index=false;
+                    break;
+                }
+            }
+        }
+
+        flush_meta();
+    }
 }
 
 /**
@@ -309,5 +448,9 @@ void SmManager::drop_index(const std::string& tab_name, const std::vector<std::s
  * @param {Context*} context
  */
 void SmManager::drop_index(const std::string& tab_name, const std::vector<ColMeta>& cols, Context* context) {
-    
+    std::vector<std::string> temp_col_names;
+    for(int i=0;i<cols.size();i++){
+        temp_col_names.push_back(cols[i].name);
+    }
+    drop_index(tab_name,temp_col_names,context);
 }

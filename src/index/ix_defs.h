@@ -53,7 +53,7 @@ public:
         tot_len_ = 0;
         tot_len_ += sizeof(page_id_t) * 4 + sizeof(int) * 6;
         tot_len_ += sizeof(ColType) * col_num_ + sizeof(int) * col_num_;
-    }
+    }//算出整个结构体的长度
 
     void serialize(char* dest) {
         int offset = 0;
@@ -124,7 +124,7 @@ public:
         last_leaf_ = *reinterpret_cast<const page_id_t*>(src + offset);
         offset += sizeof(page_id_t);
         assert(offset == tot_len_);
-    }
+    }//序列化，顺序存储
 };
 
 class IxPageHdr {
