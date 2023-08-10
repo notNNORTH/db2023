@@ -26,18 +26,8 @@ Transaction * TransactionManager::begin(Transaction* txn, LogManager* log_manage
     // 2. 如果为空指针，创建新事务
     // 3. 把开始事务加入到全局事务表中
     // 4. 返回当前事务指针
-    Transaction *txnNew = txn;
-
-    if(txn == nullptr){
-        //获取下一个txnid
-        txn_id_t txnId = next_txn_id_.load();
-        //新建txn
-        txnNew = new Transaction(txnId);
-        //加入map
-        txn_map.emplace( txnId , txnNew);
-    }
     
-    return txnNew;
+    return nullptr;
 }
 
 /**
