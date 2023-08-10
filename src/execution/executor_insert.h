@@ -73,16 +73,23 @@ class InsertExecutor : public AbstractExecutor {
         rid_ = fh_->insert_record(rec.data, context_);
         
         // Insert into index
-        for(size_t i = 0; i < tab_.indexes.size(); ++i) {
-            auto& index = tab_.indexes[i];
-            auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
-            char* key = new char[index.col_tot_len];
-            int offset = 0;
-            for(size_t i = 0; i < index.col_num; ++i) {
-                memcpy(key + offset, rec.data + index.cols[i].offset, index.cols[i].len);
-                offset += index.cols[i].len;
+        try {
+            // Insert into index
+            for(size_t i = 0; i < tab_.indexes.size(); ++i) {
+                auto& index = tab_.indexes[i];
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, index.cols)).get();
+                char* key = new char[index.col_tot_len];
+                int offset = 0;
+                for(size_t j = 0; j < index.col_num; ++j) {
+                    memcpy(key + offset, rec.data + index.cols[j].offset, index.cols[j].len);
+                    offset += index.cols[j].len;
+                }
+                ih->insert_entry(key, rid_, nullptr);
+                delete []key;
             }
-            ih->insert_entry(key, rid_, context_->txn_);
+        }catch(InternalError &error) {
+            fh_->delete_record(rid_, context_);
+            throw InternalError("item already exits");
         }
         return nullptr;
     }

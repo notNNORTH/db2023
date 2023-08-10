@@ -74,7 +74,7 @@ class DeleteExecutor : public AbstractExecutor {
     }
 
     std::unique_ptr<RmRecord> Next() override {
-
+        
         std::vector<Rid> rids_delete;
 
         for (auto &rid: rids_){
@@ -104,19 +104,29 @@ class DeleteExecutor : public AbstractExecutor {
         {
             // 2.获取最后一个待删除记录的位置
             Rid rid = rids_delete.back();
+            RmRecord rec_to_del = *fh_->get_record(rid, context_);
             rids_delete.pop_back();
+
+            for(int i = 0; i < tab_.indexes.size(); ++i) {
+                auto& it_index = tab_.indexes[i];
+                auto ih = sm_manager_->ihs_.at(sm_manager_->get_ix_manager()->get_index_name(tab_name_, it_index.cols)).get();
+                char* key = new char[it_index.col_tot_len];
+                int offset = 0;
+                for(int j = 0; j < it_index.col_num; ++j) {
+                    memcpy(key + offset, rec_to_del.data + it_index.cols[j].offset, it_index.cols[j].len);
+                    offset += it_index.cols[j].len;
+                }
+                ih->delete_entry(key, nullptr);
+                delete []key;
+            }
             
             // 3.删除记录
             fh_->delete_record(rid, context_);
         }
        
-
-
-        // TODO(by lzp)
-        // 4.删除索引
-        
         return nullptr;
     }
 
     Rid &rid() override { return _abstract_rid; }
+
 };

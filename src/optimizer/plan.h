@@ -41,7 +41,8 @@ typedef enum PlanTag{
     T_NestLoop,
     T_Sort,
     T_Projection,
-    T_Aggregate//rz-dev
+    T_Aggregate,//rz-dev
+    T_ShowIndex
 } PlanTag;
 
 // 查询执行计划
